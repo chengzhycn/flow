@@ -73,12 +73,13 @@ export function QuadrantsPage() {
   function handleCreateSubTodo(parentId: string) {
     const title = subTodoInput[parentId]?.trim()
     if (!title) return
+    const today = new Date().toISOString()
     createMutation.mutate({
       title,
       description: null,
       quadrant: null,
-      start_date: null,
-      due_date: null,
+      start_date: today,
+      due_date: today,
       parent_id: parentId,
     })
     setSubTodoInput((prev) => ({ ...prev, [parentId]: '' }))
@@ -149,26 +150,26 @@ export function QuadrantsPage() {
     const viewportHeight = window.innerHeight
     const popoverWidth = 320
     const popoverHeight = 400
-    
+
     // 计算最佳位置
     let x = rect.right + 8
     let y = rect.top
-    
+
     // 如果右侧空间不够，显示在左侧
     if (x + popoverWidth > viewportWidth - 16) {
       x = rect.left - popoverWidth - 8
     }
-    
+
     // 如果左侧也不够，居中显示
     if (x < 16) {
       x = Math.max(16, (viewportWidth - popoverWidth) / 2)
     }
-    
+
     // 如果底部空间不够，向上调整
     if (y + popoverHeight > viewportHeight - 16) {
       y = Math.max(16, viewportHeight - popoverHeight - 16)
     }
-    
+
     setPopoverPosition({ x, y })
     setSelectedTodo(todo)
     setEditingId(null)
@@ -187,7 +188,7 @@ export function QuadrantsPage() {
         closePopover()
       }
     }
-    
+
     if (selectedTodo) {
       // 延迟添加事件监听，避免立即触发关闭
       const timer = setTimeout(() => {
@@ -323,11 +324,10 @@ export function QuadrantsPage() {
                   <button
                     type="button"
                     onClick={() => toggleComplete(currentTodo)}
-                    className={`p-1.5 rounded-lg transition-all ${
-                      currentTodo.completed 
-                        ? 'bg-emerald-500/10 text-emerald-500' 
+                    className={`p-1.5 rounded-lg transition-all ${currentTodo.completed
+                        ? 'bg-emerald-500/10 text-emerald-500'
                         : 'text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5'
-                    }`}
+                      }`}
                     title={currentTodo.completed ? '标记未完成' : '标记完成'}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -433,7 +433,7 @@ export function QuadrantsPage() {
                   const hasChildren = children.length > 0
                   const inputValue = subTodoInput[currentTodo.id] || ''
                   const completedCount = children.filter(c => c.completed).length
-                  
+
                   return (
                     <div className="border-t border-[var(--color-border)]/50">
                       <div className="px-4 py-2 flex items-center justify-between">
@@ -441,7 +441,7 @@ export function QuadrantsPage() {
                           子任务 {hasChildren && `(${completedCount}/${children.length})`}
                         </span>
                       </div>
-                      
+
                       {/* 子任务列表 */}
                       {hasChildren && (
                         <div className="px-2">
@@ -453,11 +453,10 @@ export function QuadrantsPage() {
                               <button
                                 type="button"
                                 onClick={() => toggleComplete(child)}
-                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                                  child.completed 
-                                    ? 'bg-emerald-500 border-emerald-500' 
+                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${child.completed
+                                    ? 'bg-emerald-500 border-emerald-500'
                                     : 'border-[var(--color-border)] hover:border-emerald-500'
-                                }`}
+                                  }`}
                               >
                                 {child.completed && (
                                   <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
@@ -481,7 +480,7 @@ export function QuadrantsPage() {
                           ))}
                         </div>
                       )}
-                      
+
                       {/* 添加子任务 */}
                       <div className="px-4 py-2">
                         <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors">

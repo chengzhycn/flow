@@ -199,12 +199,13 @@ export function TodosPage() {
   function handleCreateSubTodo(parentId: string) {
     const title = subTodoInput[parentId]?.trim()
     if (!title) return
+    const today = new Date().toISOString()
     createMutation.mutate({
       title,
       description: null,
       quadrant: null,
-      start_date: null,
-      due_date: null,
+      start_date: today,
+      due_date: today,
       parent_id: parentId,
     })
     setSubTodoInput((prev) => ({ ...prev, [parentId]: '' }))
@@ -213,12 +214,13 @@ export function TodosPage() {
   function handleQuickCreate() {
     const title = quickCreateTitle.trim()
     if (!title) return
+    const today = new Date().toISOString()
     createMutation.mutate({
       title,
       description: null,
       quadrant: null,
-      start_date: null,
-      due_date: null,
+      start_date: today,
+      due_date: today,
       parent_id: null,
     })
     setQuickCreateTitle('')
@@ -341,20 +343,19 @@ export function TodosPage() {
             {filteredTodos.map((todo) => {
               const children = getChildren(todo.id)
               const hasChildren = children.length > 0
-              
+
               return (
                 <li
                   key={todo.id}
                   onClick={() => setSelectedTodoId(todo.id)}
-                  className={`flex items-stretch rounded-lg overflow-hidden cursor-pointer transition-all ${
-                    selectedTodoId === todo.id 
-                      ? 'bg-[var(--color-accent)]/10' 
+                  className={`flex items-stretch rounded-lg overflow-hidden cursor-pointer transition-all ${selectedTodoId === todo.id
+                      ? 'bg-[var(--color-accent)]/10'
                       : 'hover:bg-[var(--color-text)]/5'
-                  } ${todo.deleted_at ? 'opacity-60' : ''}`}
+                    } ${todo.deleted_at ? 'opacity-60' : ''}`}
                 >
                   {/* 左侧颜色条 */}
                   <div className={`w-1 shrink-0 ${getQuadrantBarColor(todo.quadrant)}`} />
-                  
+
                   <div className="flex-1 flex items-start gap-3 px-3 py-2.5">
                     {!todo.deleted_at && (
                       <button
@@ -363,11 +364,10 @@ export function TodosPage() {
                           e.stopPropagation()
                           toggleComplete(todo)
                         }}
-                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                          todo.completed 
-                            ? 'bg-emerald-500 border-emerald-500' 
+                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${todo.completed
+                            ? 'bg-emerald-500 border-emerald-500'
                             : 'border-[var(--color-border)] hover:border-emerald-500'
-                        }`}
+                          }`}
                       >
                         {todo.completed && (
                           <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
@@ -450,11 +450,10 @@ export function TodosPage() {
             />
           )}
           <div
-            className={`${
-              isLargeScreen
+            className={`${isLargeScreen
                 ? 'shrink-0 border-l border-[var(--color-border)] relative'
                 : 'fixed right-0 top-0 h-full max-w-[85vw] bg-[var(--color-bg)] border-l border-[var(--color-border)] shadow-2xl z-50'
-            } overflow-y-auto`}
+              } overflow-y-auto`}
             style={isLargeScreen ? { width: `${rightSidebarWidth}px` } : { width: `${rightSidebarWidth}px` }}
           >
             <div className="h-full overflow-y-auto pl-2 pr-2">
@@ -600,11 +599,10 @@ export function TodosPage() {
                               <button
                                 type="button"
                                 onClick={() => toggleComplete(selectedTodo)}
-                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                                  selectedTodo.completed 
-                                    ? 'bg-emerald-500 border-emerald-500' 
+                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${selectedTodo.completed
+                                    ? 'bg-emerald-500 border-emerald-500'
                                     : 'border-[var(--color-border)] hover:border-emerald-500'
-                                }`}
+                                  }`}
                               >
                                 {selectedTodo.completed && (
                                   <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
@@ -626,7 +624,7 @@ export function TodosPage() {
                             </span>
                           )}
                         </div>
-                        
+
                         {/* 已删除任务的恢复和永久删除按钮 */}
                         {selectedTodo.deleted_at && (
                           <div className="flex gap-2 mt-3">
@@ -690,7 +688,7 @@ export function TodosPage() {
                         const children = getChildren(selectedTodo.id)
                         const hasChildren = children.length > 0
                         const inputValue = subTodoInput[selectedTodo.id] || ''
-                        
+
                         return (
                           <div>
                             <div className="flex items-center justify-between mb-3">
@@ -698,7 +696,7 @@ export function TodosPage() {
                                 子任务 {hasChildren && `(${children.length})`}
                               </h4>
                             </div>
-                            
+
                             {/* 子任务列表 */}
                             {hasChildren && (
                               <ul className="space-y-2 mb-3">
@@ -711,11 +709,10 @@ export function TodosPage() {
                                       <button
                                         type="button"
                                         onClick={() => toggleComplete(child)}
-                                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                                          child.completed 
-                                            ? 'bg-emerald-500 border-emerald-500' 
+                                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${child.completed
+                                            ? 'bg-emerald-500 border-emerald-500'
                                             : 'border-[var(--color-border)] hover:border-emerald-500'
-                                        }`}
+                                          }`}
                                       >
                                         {child.completed && (
                                           <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
@@ -743,7 +740,7 @@ export function TodosPage() {
                                 ))}
                               </ul>
                             )}
-                            
+
                             {/* 添加子任务输入框 */}
                             <div className="flex items-center gap-2">
                               <span className="text-[var(--color-accent)] text-sm">+</span>

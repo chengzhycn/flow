@@ -276,12 +276,13 @@ function QuadrantCard({
   function handleQuickCreate() {
     const t = newTitle.trim()
     if (!t) return
+    const today = new Date().toISOString()
     createMutation.mutate({
       title: t,
       description: null,
       quadrant: config.id,
-      start_date: null,
-      due_date: null,
+      start_date: today,
+      due_date: today,
     })
   }
 

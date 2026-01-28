@@ -143,11 +143,10 @@ function DraggableTodoItem({
           onTodoClick(todo, e)
         }
       }}
-      className={`group rounded-xl px-3 py-2.5 cursor-grab active:cursor-grabbing transition-all border border-transparent ${
-        selectedTodoId === todo.id 
-          ? 'bg-[var(--color-bg-elevated)] border-[var(--color-accent)]/30 shadow-sm' 
-          : `bg-[var(--color-bg-elevated)]/50 ${config.cardBg}`
-      } ${isDragging ? 'shadow-lg ring-2 ring-[var(--color-accent)]/30 z-50' : ''}`}
+      className={`group rounded-xl px-3 py-2.5 cursor-grab active:cursor-grabbing transition-all border border-transparent ${selectedTodoId === todo.id
+        ? 'bg-[var(--color-bg-elevated)] border-[var(--color-accent)]/30 shadow-sm'
+        : `bg-[var(--color-bg-elevated)]/50 ${config.cardBg}`
+        } ${isDragging ? 'shadow-lg ring-2 ring-[var(--color-accent)]/30 z-50' : ''}`}
     >
       <div className="flex items-start gap-2.5">
         {/* 自定义复选框 */}
@@ -157,11 +156,10 @@ function DraggableTodoItem({
             e.stopPropagation()
             onToggleComplete(todo)
           }}
-          className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-            todo.completed 
-              ? `${config.taskIndicator} border-transparent` 
-              : `border-[var(--color-border)] hover:border-current ${config.accentColor}`
-          }`}
+          className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${todo.completed
+            ? `${config.taskIndicator} border-transparent`
+            : `border-[var(--color-border)] hover:border-current ${config.accentColor}`
+            }`}
         >
           {todo.completed && (
             <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
@@ -169,7 +167,7 @@ function DraggableTodoItem({
             </svg>
           )}
         </button>
-        
+
         <div className="flex-1 min-w-0">
           <span className={`text-sm leading-tight ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>
             {todo.title}
@@ -212,11 +210,10 @@ function DragOverlayItem({ todo, config }: { todo: Todo; config: QuadrantConfig 
   return (
     <div className={`rounded-xl px-3 py-2.5 bg-[var(--color-bg-elevated)] shadow-xl ring-2 ring-[var(--color-accent)]/50 border border-[var(--color-border)]`}>
       <div className="flex items-start gap-2.5">
-        <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-          todo.completed 
-            ? `${config.taskIndicator} border-transparent` 
-            : `border-[var(--color-border)] ${config.accentColor}`
-        }`}>
+        <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${todo.completed
+          ? `${config.taskIndicator} border-transparent`
+          : `border-[var(--color-border)] ${config.accentColor}`
+          }`}>
           {todo.completed && (
             <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -231,15 +228,15 @@ function DragOverlayItem({ todo, config }: { todo: Todo; config: QuadrantConfig 
   )
 }
 
-function QuadrantCard({ 
-  config, 
-  todos, 
-  onTodoClick, 
+function QuadrantCard({
+  config,
+  todos,
+  onTodoClick,
   selectedTodoId,
   userId,
   onToggleComplete,
   onDelete,
-}: { 
+}: {
   config: QuadrantConfig
   todos: Todo[]
   onTodoClick: (todo: Todo, event: React.MouseEvent) => void
@@ -291,11 +288,10 @@ function QuadrantCard({
   const quadrantTodos = todos.filter(t => t.quadrant === config.id && !t.deleted_at && !t.completed && !t.parent_id)
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
-      className={`flex-1 flex flex-col rounded-2xl bg-gradient-to-br ${config.bgGradient} border border-[var(--color-border)]/50 p-4 min-h-0 relative overflow-hidden backdrop-blur-sm transition-all ${
-        isOver ? 'ring-2 ring-[var(--color-accent)] border-[var(--color-accent)]/50 scale-[1.02]' : ''
-      }`}
+      className={`flex-1 flex flex-col rounded-2xl bg-gradient-to-br ${config.bgGradient} border border-[var(--color-border)]/50 p-4 min-h-0 relative overflow-hidden backdrop-blur-sm transition-all ${isOver ? 'ring-2 ring-[var(--color-accent)] border-[var(--color-accent)]/50 scale-[1.02]' : ''
+        }`}
     >
       {/* 头部 */}
       <div className="mb-4 flex items-center gap-3">
@@ -460,7 +456,7 @@ export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: Qu
     const overId = over.id as string
     if (overId.startsWith('quadrant-')) {
       const targetQuadrant = overId.replace('quadrant-', '') as NonNullable<Quadrant>
-      
+
       // 如果象限发生了变化，更新任务
       if (targetQuadrant !== activeTodoItem.quadrant) {
         updateMutation.mutate({
@@ -494,12 +490,12 @@ export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: Qu
             <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">不紧急</span>
           </div>
         </div>
-        
+
         {/* 四象限网格 */}
         <div className="grid grid-cols-[auto_1fr_1fr] gap-4 flex-1 min-h-0">
           {/* 重要标签 */}
           <div className="flex items-center justify-center">
-            <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider writing-mode-vertical transform -rotate-180" style={{ writingMode: 'vertical-rl' }}>重要</span>
+            <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider" style={{ writingMode: 'vertical-rl' }}>重要</span>
           </div>
           {/* 左上：重要且紧急 */}
           <QuadrantCard
@@ -521,10 +517,10 @@ export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: Qu
             onToggleComplete={toggleComplete}
             onDelete={handleDelete}
           />
-          
+
           {/* 不重要标签 */}
           <div className="flex items-center justify-center">
-            <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>不重要</span>
+            <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider" style={{ writingMode: 'vertical-rl' }}>不重要</span>
           </div>
           {/* 左下：不重要但紧急 */}
           <QuadrantCard

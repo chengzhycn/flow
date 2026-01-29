@@ -16,7 +16,7 @@ import {
   type Milestone,
 } from '@/api/projects'
 import { TodoSidebar, type TodoFilter } from './TodoSidebar'
-import { QuadrantSelector } from './QuadrantSelector'
+import { Dropdown } from './Dropdown'
 
 export function TodosPage() {
   const [searchParams] = useSearchParams()
@@ -403,16 +403,6 @@ export function TodosPage() {
     return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
   }
 
-  function getQuadrantLabel(quadrant: Quadrant): string {
-    if (!quadrant) return ''
-    const labels: Record<NonNullable<Quadrant>, string> = {
-      important_urgent: '重要且紧急',
-      important_not_urgent: '重要不紧急',
-      not_important_urgent: '不重要但紧急',
-      not_important_not_urgent: '不重要不紧急',
-    }
-    return labels[quadrant]
-  }
 
   function getQuadrantColor(quadrant: Quadrant): string {
     if (!quadrant) return ''
@@ -859,9 +849,19 @@ export function TodosPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-                          优先级象限
+                          重要程度
                         </label>
-                        <QuadrantSelector value={editingQuadrant} onChange={setEditingQuadrant} />
+                        <Dropdown
+                          value={editingQuadrant}
+                          onChange={(value) => setEditingQuadrant(value as typeof editingQuadrant || null)}
+                          options={[
+                            { value: 'important_urgent', label: '重要且紧急', color: '#ef4444' }, // red-500
+                            { value: 'important_not_urgent', label: '重要不紧急', color: '#eab308' }, // yellow-500
+                            { value: 'not_important_urgent', label: '不重要但紧急', color: '#3b82f6' }, // blue-500
+                            { value: 'not_important_not_urgent', label: '不重要不紧急', color: '#9ca3af' }, // gray-400
+                          ]}
+                          placeholder="未设置"
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -1182,42 +1182,22 @@ export function TodosPage() {
                           {selectedTodo.deleted_at && (
                             <span className="text-sm text-[var(--color-danger)]">已删除</span>
                           )}
-                          {/* 优先级象限 - 点击直接编辑 */}
-                          {editingId === `quadrant-${selectedTodo.id}` ? (
-                            <div className="relative">
-                              <QuadrantSelector
-                                value={editingQuadrant}
-                                onChange={(quadrant) => {
-                                  setEditingQuadrant(quadrant)
-                                  updateMutation.mutate({ id: selectedTodo.id, patch: { quadrant } })
-                                  setEditingId(null)
+                          {/* 重要程度 - 下拉框选择 */}
+                          {!selectedTodo.deleted_at && (
+                            <div className="w-32">
+                              <Dropdown
+                                value={selectedTodo.quadrant || 'not_important_not_urgent'}
+                                onChange={(value) => {
+                                  updateMutation.mutate({ id: selectedTodo.id, patch: { quadrant: value as typeof selectedTodo.quadrant } })
                                 }}
+                                options={[
+                                  { value: 'important_urgent', label: '重要且紧急', color: '#ef4444' },
+                                  { value: 'important_not_urgent', label: '重要不紧急', color: '#eab308' },
+                                  { value: 'not_important_urgent', label: '不重要但紧急', color: '#3b82f6' },
+                                  { value: 'not_important_not_urgent', label: '不重要不紧急', color: '#9ca3af' },
+                                ]}
                               />
                             </div>
-                          ) : selectedTodo.quadrant ? (
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-xs font-medium text-white ${getQuadrantColor(selectedTodo.quadrant)} shadow-sm cursor-pointer hover:opacity-80 transition-opacity`}
-                              onClick={() => {
-                                if (!selectedTodo.deleted_at) {
-                                  setEditingQuadrant(selectedTodo.quadrant)
-                                  setEditingId(`quadrant-${selectedTodo.id}`)
-                                }
-                              }}
-                              title="点击编辑"
-                            >
-                              {getQuadrantLabel(selectedTodo.quadrant)}
-                            </span>
-                          ) : !selectedTodo.deleted_at && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingQuadrant(null)
-                                setEditingId(`quadrant-${selectedTodo.id}`)
-                              }}
-                              className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
-                            >
-                              + 添加优先级
-                            </button>
                           )}
                         </div>
 

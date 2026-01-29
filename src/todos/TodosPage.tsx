@@ -335,6 +335,7 @@ export function TodosPage() {
         inbox: false,
         project_id: data.project_id,
         milestone_id: data.milestone_id,
+        quadrant: 'not_important_not_urgent',
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectTodos', selectedProjectId] })
@@ -350,7 +351,7 @@ export function TodosPage() {
     createMutation.mutate({
       title,
       description: null,
-      quadrant: null,
+      quadrant: 'not_important_not_urgent',
       start_date: today,
       due_date: today,
       parent_id: parentId,
@@ -365,7 +366,7 @@ export function TodosPage() {
     createMutation.mutate({
       title,
       description: null,
-      quadrant: null,
+      quadrant: 'not_important_not_urgent',
       start_date: today,
       due_date: today,
       parent_id: null,

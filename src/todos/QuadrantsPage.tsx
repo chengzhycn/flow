@@ -78,7 +78,7 @@ export function QuadrantsPage() {
     createMutation.mutate({
       title,
       description: null,
-      quadrant: null,
+      quadrant: 'not_important_not_urgent',
       start_date: today,
       due_date: today,
       parent_id: parentId,

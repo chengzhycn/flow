@@ -184,12 +184,14 @@ export function ProjectsPage() {
 
     // 创建任务（关联到项目）
     const createTaskMutation = useMutation({
-        mutationFn: (data: { title: string; project_id: string; milestone_id: string | null }) =>
+        mutationFn: (data: { title: string; project_id: string; milestone_id: string | null; start_date?: string; due_date?: string }) =>
             createTodo(userId, {
                 title: data.title,
                 inbox: false,
                 project_id: data.project_id,
                 milestone_id: data.milestone_id,
+                start_date: data.start_date || null,
+                due_date: data.due_date || null,
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['projectTodos', selectedProjectId] })
@@ -232,10 +234,13 @@ export function ProjectsPage() {
 
     function handleCreateTask(title: string, milestoneId: string | null) {
         if (!selectedProjectId || !title.trim()) return
+        const today = new Date().toISOString()
         createTaskMutation.mutate({
             title: title.trim(),
             project_id: selectedProjectId,
             milestone_id: milestoneId,
+            start_date: today,
+            due_date: today,
         })
     }
 

@@ -329,13 +329,15 @@ export function TodosPage() {
   })
 
   const createProjectTaskMutation = useMutation({
-    mutationFn: (data: { title: string; project_id: string; milestone_id: string | null }) =>
+    mutationFn: (data: { title: string; project_id: string; milestone_id: string | null; start_date?: string; due_date?: string }) =>
       createTodo(userId, {
         title: data.title,
         inbox: false,
         project_id: data.project_id,
         milestone_id: data.milestone_id,
         quadrant: 'not_important_not_urgent',
+        start_date: data.start_date || null,
+        due_date: data.due_date || null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectTodos', selectedProjectId] })
@@ -607,7 +609,10 @@ export function TodosPage() {
                         </div>
                       ))}
                       <div className="pl-3">
-                        <MilestoneTaskInput onAdd={(title) => createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: milestone.id })} />
+                        <MilestoneTaskInput onAdd={(title) => {
+                          const today = new Date().toISOString()
+                          createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: milestone.id, start_date: today, due_date: today })
+                        }} />
                       </div>
                     </div>
                   </div>
@@ -690,7 +695,10 @@ export function TodosPage() {
                     </div>
                   ))}
                   <div className="px-3">
-                    <MilestoneTaskInput onAdd={(title) => createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: null })} placeholder="添加任务..." />
+                    <MilestoneTaskInput onAdd={(title) => {
+                      const today = new Date().toISOString()
+                      createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: null, start_date: today, due_date: today })
+                    }} placeholder="添加任务..." />
                   </div>
                 </div>
               </div>

@@ -838,10 +838,10 @@ export function TodosPage() {
                 </div>
               )}
               {selectedTodo ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="sticky top-0 bg-[var(--color-bg)] pt-3 pb-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold text-[var(--color-text)]">任务详情</h2>
+                    <div className="flex items-center justify-between px-1">
+                      <h2 className="text-lg font-bold text-[var(--color-text)] leading-tight">任务详情</h2>
                       {!isLargeScreen && (
                         <button
                           type="button"
@@ -1696,10 +1696,10 @@ export function TodosPage() {
                   )}
                 </div>
               ) : selectedMilestone ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="sticky top-0 bg-[var(--color-bg)] pt-3 pb-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold text-[var(--color-text)]">里程碑详情</h2>
+                    <div className="flex items-center justify-between px-1">
+                      <h2 className="text-lg font-bold text-[var(--color-text)] leading-tight">里程碑详情</h2>
                       {!isLargeScreen && (
                         <button
                           type="button"

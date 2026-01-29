@@ -60,6 +60,8 @@ export function mergeTodoFromRemote(
         inbox: boolean
         sort_order: number
         parent_id: string | null
+        project_id: string | null
+        milestone_id: string | null
         deleted_at: string | null
         created_at: string
         updated_at: string

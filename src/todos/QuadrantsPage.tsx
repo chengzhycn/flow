@@ -4,6 +4,7 @@ import { useUser } from '@/auth/useUser'
 import { fetchTodos, updateTodo, deleteTodo, createTodo, type Todo, type Quadrant } from '@/api/todos'
 import { QuadrantsView } from './QuadrantsView'
 import { QuadrantSelector } from './QuadrantSelector'
+import { DatePicker } from './DatePicker'
 
 export function QuadrantsPage() {
   const { user, loading: userLoading } = useUser()
@@ -281,20 +282,18 @@ export function QuadrantsPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">开始</label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={editingStartDate}
-                      onChange={(e) => setEditingStartDate(e.target.value)}
-                      className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      onChange={setEditingStartDate}
+                      placeholder="选择日期"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">截止</label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={editingDueDate}
-                      onChange={(e) => setEditingDueDate(e.target.value)}
-                      className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      onChange={setEditingDueDate}
+                      placeholder="选择日期"
                     />
                   </div>
                 </div>

@@ -16,6 +16,7 @@ import {
     type Milestone,
 } from '@/api/projects'
 import { createTodo } from '@/api/todos'
+import { DatePicker } from '@/todos/DatePicker'
 
 // 预设颜色选项
 const PROJECT_COLORS = [
@@ -502,11 +503,11 @@ export function ProjectsPage() {
                                                     placeholder="添加新的里程碑..."
                                                     className="flex-1 bg-transparent border-none text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none"
                                                 />
-                                                <input
-                                                    type="date"
+                                                <DatePicker
                                                     value={newMilestoneDueDate}
-                                                    onChange={(e) => setNewMilestoneDueDate(e.target.value)}
-                                                    className="w-32 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-2 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                                                    onChange={setNewMilestoneDueDate}
+                                                    placeholder="截止日期"
+                                                    className="w-36"
                                                 />
                                             </div>
                                         </div>

@@ -17,6 +17,7 @@ import {
 } from '@/api/projects'
 import { TodoSidebar, type TodoFilter } from './TodoSidebar'
 import { Dropdown } from './Dropdown'
+import { DatePicker } from './DatePicker'
 
 export function TodosPage() {
   const [searchParams] = useSearchParams()
@@ -545,10 +546,10 @@ export function TodosPage() {
                           </svg>
                         )}
                       </button>
-                      <div className="flex-1 flex items-center gap-2 min-w-0">
+                      <div className="flex-1 flex items-center justify-between min-w-0">
                         <span className={`text-sm font-bold ${milestone.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{milestone.name}</span>
                         {milestone.due_date && (
-                          <span className={`text-xs ${new Date(milestone.due_date) < new Date() && !milestone.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'}`}>
+                          <span className={`text-xs shrink-0 ${new Date(milestone.due_date) < new Date() && !milestone.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'}`}>
                             {new Date(milestone.due_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
                           </span>
                         )}
@@ -613,8 +614,11 @@ export function TodosPage() {
               })()}
 
               {/* 添加里程碑 */}
-              <div className="pt-6 border-t border-[var(--color-border)]">
-                <div className="flex gap-2">
+              <div className="bg-[var(--color-bg-elevated)] rounded-xl p-4">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[var(--color-accent)] shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
                   <input
                     type="text"
                     value={newMilestoneName}
@@ -625,13 +629,13 @@ export function TodosPage() {
                       }
                     }}
                     placeholder="添加新的里程碑..."
-                    className="flex-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                    className="flex-1 bg-transparent border-none text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none"
                   />
-                  <input
-                    type="date"
+                  <DatePicker
                     value={newMilestoneDueDate}
-                    onChange={(e) => setNewMilestoneDueDate(e.target.value)}
-                    className="w-32 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-2 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                    onChange={setNewMilestoneDueDate}
+                    placeholder="截止日期"
+                    className="w-36"
                   />
                 </div>
               </div>
@@ -903,20 +907,18 @@ export function TodosPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">启动时间</label>
-                          <input
-                            type="date"
+                          <DatePicker
                             value={editingStartDate}
-                            onChange={(e) => setEditingStartDate(e.target.value)}
-                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-1.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+                            onChange={setEditingStartDate}
+                            placeholder="选择日期"
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">截止时间</label>
-                          <input
-                            type="date"
+                          <DatePicker
                             value={editingDueDate}
-                            onChange={(e) => setEditingDueDate(e.target.value)}
-                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-1.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
+                            onChange={setEditingDueDate}
+                            placeholder="选择日期"
                           />
                         </div>
                       </div>
@@ -1310,39 +1312,18 @@ export function TodosPage() {
                           {/* 启动时间 */}
                           <div className="flex justify-between items-center">
                             <span className="text-[var(--color-text-muted)]">启动时间：</span>
-                            {editingId === `start-${selectedTodo.id}` ? (
-                              <input
-                                type="date"
-                                value={editingStartDate}
-                                onChange={(e) => setEditingStartDate(e.target.value)}
-                                onBlur={() => {
-                                  const newDate = editingStartDate ? new Date(editingStartDate).toISOString() : null
+                            {!selectedTodo.deleted_at ? (
+                              <DatePicker
+                                value={selectedTodo.start_date ? new Date(selectedTodo.start_date).toISOString().split('T')[0] : ''}
+                                onChange={(value) => {
+                                  const newDate = value ? new Date(value).toISOString() : null
                                   updateMutation.mutate({ id: selectedTodo.id, patch: { start_date: newDate } })
-                                  setEditingId(null)
                                 }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    const newDate = editingStartDate ? new Date(editingStartDate).toISOString() : null
-                                    updateMutation.mutate({ id: selectedTodo.id, patch: { start_date: newDate } })
-                                    setEditingId(null)
-                                  } else if (e.key === 'Escape') {
-                                    setEditingId(null)
-                                  }
-                                }}
-                                autoFocus
-                                className="bg-[var(--color-bg)] border border-[var(--color-accent)] rounded px-2 py-1 text-[var(--color-text)] focus:outline-none"
+                                placeholder="未设置"
+                                className="w-36"
                               />
                             ) : (
-                              <span
-                                className="text-[var(--color-text)] cursor-pointer hover:text-[var(--color-accent)] transition-colors"
-                                onClick={() => {
-                                  if (!selectedTodo.deleted_at) {
-                                    setEditingStartDate(selectedTodo.start_date ? new Date(selectedTodo.start_date).toISOString().split('T')[0] : '')
-                                    setEditingId(`start-${selectedTodo.id}`)
-                                  }
-                                }}
-                                title="点击编辑"
-                              >
+                              <span className="text-[var(--color-text)]">
                                 {selectedTodo.start_date ? formatDate(selectedTodo.start_date) : <span className="text-[var(--color-text-muted)]/50 italic">未设置</span>}
                               </span>
                             )}
@@ -1350,39 +1331,18 @@ export function TodosPage() {
                           {/* 截止时间 */}
                           <div className="flex justify-between items-center">
                             <span className="text-[var(--color-text-muted)]">截止时间：</span>
-                            {editingId === `due-${selectedTodo.id}` ? (
-                              <input
-                                type="date"
-                                value={editingDueDate}
-                                onChange={(e) => setEditingDueDate(e.target.value)}
-                                onBlur={() => {
-                                  const newDate = editingDueDate ? new Date(editingDueDate).toISOString() : null
+                            {!selectedTodo.deleted_at ? (
+                              <DatePicker
+                                value={selectedTodo.due_date ? new Date(selectedTodo.due_date).toISOString().split('T')[0] : ''}
+                                onChange={(value) => {
+                                  const newDate = value ? new Date(value).toISOString() : null
                                   updateMutation.mutate({ id: selectedTodo.id, patch: { due_date: newDate } })
-                                  setEditingId(null)
                                 }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    const newDate = editingDueDate ? new Date(editingDueDate).toISOString() : null
-                                    updateMutation.mutate({ id: selectedTodo.id, patch: { due_date: newDate } })
-                                    setEditingId(null)
-                                  } else if (e.key === 'Escape') {
-                                    setEditingId(null)
-                                  }
-                                }}
-                                autoFocus
-                                className="bg-[var(--color-bg)] border border-[var(--color-accent)] rounded px-2 py-1 text-[var(--color-text)] focus:outline-none"
+                                placeholder="未设置"
+                                className="w-36"
                               />
                             ) : (
-                              <span
-                                className={`cursor-pointer hover:text-[var(--color-accent)] transition-colors ${selectedTodo.due_date && new Date(selectedTodo.due_date) < new Date() ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}
-                                onClick={() => {
-                                  if (!selectedTodo.deleted_at) {
-                                    setEditingDueDate(selectedTodo.due_date ? new Date(selectedTodo.due_date).toISOString().split('T')[0] : '')
-                                    setEditingId(`due-${selectedTodo.id}`)
-                                  }
-                                }}
-                                title="点击编辑"
-                              >
+                              <span className={`${selectedTodo.due_date && new Date(selectedTodo.due_date) < new Date() ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>
                                 {selectedTodo.due_date ? formatDate(selectedTodo.due_date) : <span className="text-[var(--color-text-muted)]/50 italic">未设置</span>}
                               </span>
                             )}
@@ -1737,14 +1697,12 @@ export function TodosPage() {
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
                           截止日期
                         </label>
-                        <input
-                          type="date"
-                          defaultValue={selectedMilestone.due_date ? selectedMilestone.due_date.split('T')[0] : ''}
-                          key={`date-${selectedMilestone.id}`}
-                          onChange={(e) => {
-                            updateMilestoneMutation.mutate({ id: selectedMilestone.id, patch: { due_date: e.target.value || null } })
+                        <DatePicker
+                          value={selectedMilestone.due_date ? selectedMilestone.due_date.split('T')[0] : ''}
+                          onChange={(value) => {
+                            updateMilestoneMutation.mutate({ id: selectedMilestone.id, patch: { due_date: value || null } })
                           }}
-                          className="w-full rounded-lg border-none bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all"
+                          placeholder="选择日期"
                         />
                       </div>
                     </div>

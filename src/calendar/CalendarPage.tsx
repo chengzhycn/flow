@@ -14,6 +14,7 @@ import {
   getNextMonth,
   toLocalISOString,
 } from './CalendarUtils'
+import { DatePicker } from '@/todos/DatePicker'
 
 type ViewMode = 'week' | 'month'
 
@@ -397,20 +398,18 @@ export function CalendarPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">开始</label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={editingStartDate}
-                      onChange={(e) => setEditingStartDate(e.target.value)}
-                      className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      onChange={setEditingStartDate}
+                      placeholder="选择日期"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">截止</label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={editingDueDate}
-                      onChange={(e) => setEditingDueDate(e.target.value)}
-                      className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      onChange={setEditingDueDate}
+                      placeholder="选择日期"
                     />
                   </div>
                 </div>
@@ -442,8 +441,8 @@ export function CalendarPage() {
                     type="button"
                     onClick={() => handleToggleComplete(currentTodo)}
                     className={`p-1.5 rounded-lg transition-all ${currentTodo.completed
-                        ? 'bg-emerald-500/10 text-emerald-500'
-                        : 'text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5'
+                      ? 'bg-emerald-500/10 text-emerald-500'
+                      : 'text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5'
                       }`}
                     title={currentTodo.completed ? '标记未完成' : '标记完成'}
                   >
@@ -564,8 +563,8 @@ export function CalendarPage() {
                                 type="button"
                                 onClick={() => handleToggleComplete(child)}
                                 className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${child.completed
-                                    ? 'bg-emerald-500 border-emerald-500'
-                                    : 'border-[var(--color-border)] hover:border-emerald-500'
+                                  ? 'bg-emerald-500 border-emerald-500'
+                                  : 'border-[var(--color-border)] hover:border-emerald-500'
                                   }`}
                               >
                                 {child.completed && (

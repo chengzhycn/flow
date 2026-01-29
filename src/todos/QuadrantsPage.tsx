@@ -216,9 +216,11 @@ export function QuadrantsPage() {
 
   return (
     <div className="flex h-full relative">
-      <div className="flex-1 flex flex-col min-w-0 px-2 py-2">
-        <div className="mb-4 pb-4 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">四象限</h2>
+      <div className="flex-1 flex flex-col min-w-0 px-4 py-2">
+        <div className="flex items-center justify-between px-1 py-3 mb-4">
+          <div className="flex items-center gap-2 h-8">
+            <h2 className="text-lg font-bold text-[var(--color-text)] leading-tight">四象限</h2>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0">
@@ -325,8 +327,8 @@ export function QuadrantsPage() {
                     type="button"
                     onClick={() => toggleComplete(currentTodo)}
                     className={`p-1.5 rounded-lg transition-all ${currentTodo.completed
-                        ? 'bg-emerald-500/10 text-emerald-500'
-                        : 'text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5'
+                      ? 'bg-emerald-500/10 text-emerald-500'
+                      : 'text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5'
                       }`}
                     title={currentTodo.completed ? '标记未完成' : '标记完成'}
                   >
@@ -454,8 +456,8 @@ export function QuadrantsPage() {
                                 type="button"
                                 onClick={() => toggleComplete(child)}
                                 className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${child.completed
-                                    ? 'bg-emerald-500 border-emerald-500'
-                                    : 'border-[var(--color-border)] hover:border-emerald-500'
+                                  ? 'bg-emerald-500 border-emerald-500'
+                                  : 'border-[var(--color-border)] hover:border-emerald-500'
                                   }`}
                               >
                                 {child.completed && (

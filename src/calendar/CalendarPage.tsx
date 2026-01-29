@@ -150,22 +150,22 @@ export function CalendarPage() {
     const viewportHeight = window.innerHeight
     const popoverWidth = 320
     const popoverHeight = 400
-    
+
     let x = rect.right + 8
     let y = rect.top
-    
+
     if (x + popoverWidth > viewportWidth - 16) {
       x = rect.left - popoverWidth - 8
     }
-    
+
     if (x < 16) {
       x = Math.max(16, (viewportWidth - popoverWidth) / 2)
     }
-    
+
     if (y + popoverHeight > viewportHeight - 16) {
       y = Math.max(16, viewportHeight - popoverHeight - 16)
     }
-    
+
     setPopoverPosition({ x, y })
     setSelectedTodo(todo)
     setEditingId(null)
@@ -239,7 +239,7 @@ export function CalendarPage() {
         closePopover()
       }
     }
-    
+
     if (selectedTodo) {
       const timer = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside)
@@ -265,69 +265,65 @@ export function CalendarPage() {
   const currentTodo = selectedTodo ? todos.find(t => t.id === selectedTodo.id) || selectedTodo : null
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative px-4 py-2">
       {/* Header with navigation and view toggle */}
-      <div className="shrink-0 px-6 py-4 border-b border-[var(--color-border)]">
-        <div className="flex items-center justify-between">
-          {/* Left: Title and navigation */}
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-semibold text-[var(--color-text)]">{title}</h1>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handleNavigatePrev}
-                className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)] transition-colors"
-                title={viewMode === 'week' ? '上一周' : '上一月'}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={handleGoToToday}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)] transition-colors"
-              >
-                今天
-              </button>
-              <button
-                type="button"
-                onClick={handleNavigateNext}
-                className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)] transition-colors"
-                title={viewMode === 'week' ? '下一周' : '下一月'}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
+      <div className="flex items-center justify-between px-1 py-3 mb-4 shrink-0">
+        {/* Left: Title and navigation */}
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-bold text-[var(--color-text)] leading-tight">{title}</h1>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleNavigatePrev}
+              className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+              title={viewMode === 'week' ? '上一周' : '上一月'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleGoToToday}
+              className="px-2 py-1 rounded-lg text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+            >
+              今天
+            </button>
+            <button
+              type="button"
+              onClick={handleNavigateNext}
+              className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+              title={viewMode === 'week' ? '下一周' : '下一月'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
+        </div>
 
-          {/* Right: View mode toggle */}
-          <div className="flex items-center gap-1 bg-[var(--color-bg-elevated)] rounded-lg p-1">
-            <button
-              type="button"
-              onClick={() => setViewMode('week')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'week'
-                  ? 'bg-[var(--color-accent)] text-white'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+        {/* Right: View mode toggle */}
+        <div className="flex items-center gap-1 bg-[var(--color-bg-elevated)] rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setViewMode('week')}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${viewMode === 'week'
+              ? 'bg-[var(--color-accent)] text-white'
+              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
               }`}
-            >
-              周
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('month')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'month'
-                  ? 'bg-[var(--color-accent)] text-white'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+          >
+            周
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('month')}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${viewMode === 'month'
+              ? 'bg-[var(--color-accent)] text-white'
+              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
               }`}
-            >
-              月
-            </button>
-          </div>
+          >
+            月
+          </button>
         </div>
       </div>
 
@@ -445,11 +441,10 @@ export function CalendarPage() {
                   <button
                     type="button"
                     onClick={() => handleToggleComplete(currentTodo)}
-                    className={`p-1.5 rounded-lg transition-all ${
-                      currentTodo.completed 
-                        ? 'bg-emerald-500/10 text-emerald-500' 
+                    className={`p-1.5 rounded-lg transition-all ${currentTodo.completed
+                        ? 'bg-emerald-500/10 text-emerald-500'
                         : 'text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5'
-                    }`}
+                      }`}
                     title={currentTodo.completed ? '标记未完成' : '标记完成'}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -549,7 +544,7 @@ export function CalendarPage() {
                   const hasChildren = children.length > 0
                   const inputValue = subTodoInput[currentTodo.id] || ''
                   const completedCount = children.filter(c => c.completed).length
-                  
+
                   return (
                     <div className="border-t border-[var(--color-border)]/50">
                       <div className="px-4 py-2 flex items-center justify-between">
@@ -557,7 +552,7 @@ export function CalendarPage() {
                           子任务 {hasChildren && `(${completedCount}/${children.length})`}
                         </span>
                       </div>
-                      
+
                       {hasChildren && (
                         <div className="px-2">
                           {children.map((child) => (
@@ -568,11 +563,10 @@ export function CalendarPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleComplete(child)}
-                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                                  child.completed 
-                                    ? 'bg-emerald-500 border-emerald-500' 
+                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${child.completed
+                                    ? 'bg-emerald-500 border-emerald-500'
                                     : 'border-[var(--color-border)] hover:border-emerald-500'
-                                }`}
+                                  }`}
                               >
                                 {child.completed && (
                                   <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
@@ -596,7 +590,7 @@ export function CalendarPage() {
                           ))}
                         </div>
                       )}
-                      
+
                       <div className="px-4 py-2">
                         <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors">
                           <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

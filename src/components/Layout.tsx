@@ -42,11 +42,20 @@ function CalendarIcon({ className }: { className?: string }) {
   )
 }
 
+function ProjectsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+    </svg>
+  )
+}
+
 const iconComponents = {
   todos: TodosIcon,
   quadrants: QuadrantsIcon,
   pomodoro: PomodoroIcon,
   calendar: CalendarIcon,
+  projects: ProjectsIcon,
   settings: SettingsIcon,
 }
 
@@ -79,11 +88,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 key={item.path}
                 to={item.path}
                 title={item.label}
-                className={`flex items-center justify-center w-12 h-12 mx-auto rounded-lg transition-colors ${
-                  isActive
+                className={`flex items-center justify-center w-12 h-12 mx-auto rounded-lg transition-colors ${isActive
                     ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
                     : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]'
-                }`}
+                  }`}
               >
                 {(() => {
                   const IconComponent = iconComponents[item.icon]
@@ -109,11 +117,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 overflow-auto">
-          <div className={`w-full h-full ${
-            location.pathname === '/' || location.pathname === '/quadrants' || location.pathname === '/calendar'
-              ? 'max-w-full px-0 py-0' 
+          <div className={`w-full h-full ${location.pathname === '/' || location.pathname === '/quadrants' || location.pathname === '/calendar' || location.pathname === '/projects'
+              ? 'max-w-full px-0 py-0'
               : 'mx-auto max-w-6xl px-6 py-8'
-          }`}>
+            }`}>
             {children}
           </div>
         </div>

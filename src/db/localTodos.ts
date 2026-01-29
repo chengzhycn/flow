@@ -1,8 +1,24 @@
-import type { Todo, TodoInsert, TodoUpdate, Quadrant } from '../api/todos'
+import type { TodoInsert, TodoUpdate, Quadrant } from '../api/todos'
 import { getDatabase, generateId, nowISO } from './local'
 
 // 本地 Todo 类型，包含同步字段
-export type LocalTodo = Todo & {
+export type LocalTodo = {
+    id: string
+    user_id: string
+    title: string
+    description: string | null
+    completed: boolean
+    due_date: string | null
+    start_date: string | null
+    quadrant: Quadrant
+    inbox: boolean
+    sort_order: number
+    parent_id: string | null
+    project_id: string | null
+    milestone_id: string | null
+    deleted_at: string | null
+    created_at: string
+    updated_at: string
     sync_status: 'synced' | 'pending' | 'conflict'
     local_updated_at: string
     remote_updated_at: string | null
@@ -59,6 +75,8 @@ export async function createLocalTodo(
         inbox: todo.inbox ?? true,
         sort_order: todo.sort_order ?? 0,
         parent_id: todo.parent_id ?? null,
+        project_id: todo.project_id ?? null,
+        milestone_id: todo.milestone_id ?? null,
         deleted_at: null,
         created_at: now,
         updated_at: now,
@@ -70,9 +88,9 @@ export async function createLocalTodo(
     await db.execute(
         `INSERT INTO todos (
       id, user_id, title, description, completed, due_date, start_date,
-      quadrant, inbox, sort_order, parent_id, deleted_at, created_at, updated_at,
+      quadrant, inbox, sort_order, parent_id, project_id, milestone_id, deleted_at, created_at, updated_at,
       sync_status, local_updated_at, remote_updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
         [
             newTodo.id,
             newTodo.user_id,
@@ -85,6 +103,8 @@ export async function createLocalTodo(
             newTodo.inbox ? 1 : 0,
             newTodo.sort_order,
             newTodo.parent_id,
+            newTodo.project_id,
+            newTodo.milestone_id,
             newTodo.deleted_at,
             newTodo.created_at,
             newTodo.updated_at,
@@ -147,6 +167,14 @@ export async function updateLocalTodo(
     if (patch.parent_id !== undefined) {
         updates.push(`parent_id = $${paramIndex++}`)
         values.push(patch.parent_id)
+    }
+    if (patch.project_id !== undefined) {
+        updates.push(`project_id = $${paramIndex++}`)
+        values.push(patch.project_id)
+    }
+    if (patch.milestone_id !== undefined) {
+        updates.push(`milestone_id = $${paramIndex++}`)
+        values.push(patch.milestone_id)
     }
 
     // 总是更新这些字段
@@ -255,9 +283,9 @@ export async function upsertLocalTodos(todos: LocalTodo[]): Promise<void> {
         await db.execute(
             `INSERT OR REPLACE INTO todos (
         id, user_id, title, description, completed, due_date, start_date,
-        quadrant, inbox, sort_order, parent_id, deleted_at, created_at, updated_at,
+        quadrant, inbox, sort_order, parent_id, project_id, milestone_id, deleted_at, created_at, updated_at,
         sync_status, local_updated_at, remote_updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
             [
                 todo.id,
                 todo.user_id,
@@ -270,6 +298,8 @@ export async function upsertLocalTodos(todos: LocalTodo[]): Promise<void> {
                 todo.inbox ? 1 : 0,
                 todo.sort_order,
                 todo.parent_id,
+                todo.project_id,
+                todo.milestone_id,
                 todo.deleted_at,
                 todo.created_at,
                 todo.updated_at,

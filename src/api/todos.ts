@@ -25,13 +25,15 @@ export type Todo = {
   inbox: boolean
   sort_order: number
   parent_id: string | null
+  project_id: string | null
+  milestone_id: string | null
   deleted_at: string | null
   created_at: string
   updated_at: string
 }
 
-export type TodoInsert = Pick<Todo, 'title'> & Partial<Pick<Todo, 'description' | 'completed' | 'due_date' | 'start_date' | 'quadrant' | 'inbox' | 'sort_order' | 'parent_id'>>
-export type TodoUpdate = Partial<Pick<Todo, 'title' | 'description' | 'completed' | 'due_date' | 'start_date' | 'quadrant' | 'inbox' | 'sort_order' | 'parent_id'>>
+export type TodoInsert = Pick<Todo, 'title'> & Partial<Pick<Todo, 'description' | 'completed' | 'due_date' | 'start_date' | 'quadrant' | 'inbox' | 'sort_order' | 'parent_id' | 'project_id' | 'milestone_id'>>
+export type TodoUpdate = Partial<Pick<Todo, 'title' | 'description' | 'completed' | 'due_date' | 'start_date' | 'quadrant' | 'inbox' | 'sort_order' | 'parent_id' | 'project_id' | 'milestone_id'>>
 
 // 当前用户 ID 缓存（用于触发同步）
 let currentUserId: string | null = null
@@ -104,6 +106,8 @@ export async function createTodo(userId: string, todo: TodoInsert): Promise<Todo
       inbox: todo.inbox ?? true,
       sort_order: todo.sort_order ?? 0,
       parent_id: todo.parent_id ?? null,
+      project_id: todo.project_id ?? null,
+      milestone_id: todo.milestone_id ?? null,
     })
     .select()
     .single()
@@ -202,6 +206,8 @@ function localToTodo(local: LocalTodo): Todo {
     inbox: local.inbox,
     sort_order: local.sort_order,
     parent_id: local.parent_id,
+    project_id: local.project_id,
+    milestone_id: local.milestone_id,
     deleted_at: local.deleted_at,
     created_at: local.created_at,
     updated_at: local.updated_at,

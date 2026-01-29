@@ -1,5 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { signOut } from '@/api/auth'
+import { Link, useLocation } from 'react-router-dom'
 
 // Solid icon components
 function TodosIcon({ className }: { className?: string }) {
@@ -61,19 +60,13 @@ const iconComponents = {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
-  const navigate = useNavigate()
-
-  async function handleSignOut() {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
 
   const navItems = [
-    { path: '/', icon: 'todos' as const, label: 'Todos' },
-    { path: '/quadrants', icon: 'quadrants' as const, label: 'Quadrants' },
-    { path: '/calendar', icon: 'calendar' as const, label: 'Calendar' },
-    { path: '/pomodoro', icon: 'pomodoro' as const, label: 'Pomodoro' },
-    { path: '/settings', icon: 'settings' as const, label: 'Settings' },
+    { path: '/', icon: 'todos' as const, label: '任务' },
+    { path: '/quadrants', icon: 'quadrants' as const, label: '四象限' },
+    { path: '/calendar', icon: 'calendar' as const, label: '日历' },
+    { path: '/pomodoro', icon: 'pomodoro' as const, label: '番茄钟' },
+    { path: '/settings', icon: 'settings' as const, label: '设置' },
   ]
 
   return (
@@ -89,8 +82,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 to={item.path}
                 title={item.label}
                 className={`flex items-center justify-center w-12 h-12 mx-auto rounded-lg transition-colors ${isActive
-                    ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
-                    : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]'
+                  ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                  : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]'
                   }`}
               >
                 {(() => {
@@ -101,25 +94,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
-
-        <div className="mt-auto flex flex-col gap-2 w-full px-2">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            title="Sign out"
-            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)] transition-colors"
-          >
-            退出
-          </button>
-        </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 overflow-auto">
           <div className={`w-full h-full ${location.pathname === '/' || location.pathname === '/quadrants' || location.pathname === '/calendar' || location.pathname === '/projects'
-              ? 'max-w-full px-0 py-0'
-              : 'mx-auto max-w-6xl px-6 py-8'
+            ? 'max-w-full px-0 py-0'
+            : 'mx-auto max-w-6xl px-6 py-8'
             }`}>
             {children}
           </div>

@@ -16,6 +16,7 @@ type SidebarProps = {
   selectedProjectId: string | null
   onSelectProject: (projectId: string | null) => void
   onCreateProject: (name: string) => void
+  onDeleteProject: (projectId: string) => void
   counts?: {
     today?: number
     week?: number
@@ -68,6 +69,7 @@ export function TodoSidebar({
   selectedProjectId,
   onSelectProject,
   onCreateProject,
+  onDeleteProject,
   counts = {},
 }: SidebarProps) {
   const [newProjectName, setNewProjectName] = useState('')
@@ -133,21 +135,34 @@ export function TodoSidebar({
           {projects.map((project) => {
             const isActive = selectedProjectId === project.id
             return (
-              <button
+              <div
                 key={project.id}
-                type="button"
-                onClick={() => onSelectProject(project.id)}
-                className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 transition-all text-left ${isActive
+                className={`group w-full flex items-center justify-between rounded-md px-2 py-1.5 transition-all cursor-pointer ${isActive
                   ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
                   : 'text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)]'
                   }`}
+                onClick={() => onSelectProject(project.id)}
               >
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: project.color }}
-                />
-                <span className={`truncate ${isActive ? 'font-medium' : ''}`}>{project.name}</span>
-              </button>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: project.color }}
+                  />
+                  <span className={`truncate ${isActive ? 'font-medium' : ''}`}>{project.name}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteProject(project.id)
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-all"
+                  title="删除项目"
+                >
+                  <TrashIcon />
+                </button>
+              </div>
             )
           })}
         </nav>

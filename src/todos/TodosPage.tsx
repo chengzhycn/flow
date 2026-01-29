@@ -296,9 +296,13 @@ export function TodosPage() {
 
   const deleteProjectMutation = useMutation({
     mutationFn: deleteProject,
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
+      console.log('[deleteProject] Success, deleted:', deletedId)
       queryClient.invalidateQueries({ queryKey: ['projects', userId] })
-      if (selectedProjectId) setSelectedProjectId(null)
+      if (selectedProjectId === deletedId) setSelectedProjectId(null)
+    },
+    onError: (error) => {
+      console.error('[deleteProject] Error:', error)
     },
   })
 
@@ -448,6 +452,7 @@ export function TodosPage() {
             selectedProjectId={selectedProjectId}
             onSelectProject={setSelectedProjectId}
             onCreateProject={(name) => createProjectMutation.mutate(name)}
+            onDeleteProject={(id) => deleteProjectMutation.mutate(id)}
           />
         </div>
         {/* 拖拽手柄 */}
@@ -487,12 +492,8 @@ export function TodosPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (confirm('确定要删除这个项目吗？')) {
-                        deleteProjectMutation.mutate(selectedProject.id)
-                      }
-                    }}
-                    className="p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] rounded transition-colors"
+                    onClick={() => deleteProjectMutation.mutate(selectedProject.id)}
+                    className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] rounded transition-colors"
                     title="删除项目"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -554,7 +555,7 @@ export function TodosPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => { if (confirm('确定要删除这个里程碑吗？')) deleteMilestoneMutation.mutate(milestone.id) }}
+                        onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
                         className="opacity-0 group-hover:opacity-100 p-1 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-all"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

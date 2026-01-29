@@ -346,7 +346,7 @@ async function processSyncQueueItem(item: SyncQueueItem): Promise<void> {
 /**
  * 从远端拉取数据
  */
-async function pullFromRemote(userId: string, isFullSync: boolean): Promise<void> {
+async function pullFromRemote(userId: string, _isFullSync: boolean): Promise<void> {
     const db = await getDatabase()
 
     // 获取上次同步时间

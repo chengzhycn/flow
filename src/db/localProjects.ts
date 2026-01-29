@@ -379,6 +379,7 @@ export async function getProjectTodos(projectId: string): Promise<{
     title: string
     completed: boolean
     milestone_id: string | null
+    project_id: string
 }[]> {
     const db = await getDatabase()
 

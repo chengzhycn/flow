@@ -488,7 +488,8 @@ export function ProjectsPage() {
 
                                         {/* 添加里程碑 */}
                                         <div className="pt-6 border-t border-[var(--color-border)]">
-                                            <div className="flex gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[var(--color-accent)] text-lg">+</span>
                                                 <input
                                                     type="text"
                                                     value={newMilestoneName}
@@ -499,7 +500,7 @@ export function ProjectsPage() {
                                                         }
                                                     }}
                                                     placeholder="添加新的里程碑..."
-                                                    className="flex-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                                                    className="flex-1 bg-transparent border-none text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none"
                                                 />
                                                 <input
                                                     type="date"
@@ -507,14 +508,6 @@ export function ProjectsPage() {
                                                     onChange={(e) => setNewMilestoneDueDate(e.target.value)}
                                                     className="w-32 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-2 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                                                 />
-                                                <button
-                                                    type="button"
-                                                    onClick={handleCreateMilestone}
-                                                    disabled={!newMilestoneName.trim()}
-                                                    className="rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    添加
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -682,7 +675,8 @@ function TaskInput({ onAdd, placeholder }: { onAdd: (title: string) => void, pla
     }
 
     return (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+            <span className="text-[var(--color-accent)] text-lg">+</span>
             <input
                 type="text"
                 value={title}
@@ -691,16 +685,8 @@ function TaskInput({ onAdd, placeholder }: { onAdd: (title: string) => void, pla
                     if (e.key === 'Enter') handleAdd()
                 }}
                 placeholder={placeholder || "添加任务..."}
-                className="flex-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                className="flex-1 bg-transparent border-none text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none"
             />
-            <button
-                type="button"
-                onClick={handleAdd}
-                disabled={!title.trim()}
-                className="rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                添加
-            </button>
         </div>
     )
 }

@@ -345,6 +345,7 @@ function QuadrantCard({
       <div className="mt-3 pt-3 border-t border-[var(--color-border)]/30">
         {showCreateForm ? (
           <div className="flex items-center gap-2">
+            <span className={`text-lg ${config.accentColor}`}>+</span>
             <input
               type="text"
               value={newTitle}
@@ -358,32 +359,15 @@ function QuadrantCard({
                   setNewTitle('')
                 }
               }}
-              placeholder="输入任务标题..."
-              autoFocus
-              className="flex-1 bg-[var(--color-bg-elevated)] rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
-            />
-            <button
-              type="button"
-              onClick={handleQuickCreate}
-              disabled={!newTitle.trim() || createMutation.isPending}
-              className={`p-2 rounded-lg ${config.iconBg} transition-all hover:scale-105 active:scale-95 disabled:opacity-50`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateForm(false)
-                setNewTitle('')
+              onBlur={() => {
+                if (!newTitle.trim()) {
+                  setShowCreateForm(false)
+                }
               }}
-              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5 transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              placeholder="输入任务标题，按回车保存..."
+              autoFocus
+              className="flex-1 bg-transparent border-none text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none"
+            />
           </div>
         ) : (
           <button

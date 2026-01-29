@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { useUser } from '@/auth/useUser'
@@ -39,9 +39,13 @@ export function TodosPage() {
   const [newMilestoneName, setNewMilestoneName] = useState('')
   const [newMilestoneDueDate, setNewMilestoneDueDate] = useState('')
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(220)
-  const [rightSidebarWidth, setRightSidebarWidth] = useState(384)
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(600)
   const [isResizingLeft, setIsResizingLeft] = useState(false)
   const [isResizingRight, setIsResizingRight] = useState(false)
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false)
+  const [showMilestoneDropdown, setShowMilestoneDropdown] = useState(false)
+  const projectDropdownRef = useRef<HTMLDivElement>(null)
+  const milestoneDropdownRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const { user, loading: userLoading } = useUser()
   const userId = user?.id ?? ''
@@ -122,6 +126,20 @@ export function TodosPage() {
       document.body.style.userSelect = ''
     }
   }, [isResizingRight])
+
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+        setShowProjectDropdown(false)
+      }
+      if (milestoneDropdownRef.current && !milestoneDropdownRef.current.contains(event.target as Node)) {
+        setShowMilestoneDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const { data: todos = [], isLoading } = useQuery({
     queryKey: ['todos', userId, filter],
@@ -235,6 +253,10 @@ export function TodosPage() {
       updateTodo(id, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos', userId] })
+      if (selectedProjectId) {
+        queryClient.invalidateQueries({ queryKey: ['projectTodos', selectedProjectId] })
+        queryClient.invalidateQueries({ queryKey: ['projectTaskStats', selectedProjectId] })
+      }
       setEditingId(null)
     },
   })
@@ -542,13 +564,21 @@ export function TodosPage() {
                         onClick={() => setSelectedTodoId(todo.id)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--color-text)]/5 cursor-pointer ${selectedTodoId === todo.id ? 'bg-[var(--color-accent)]/10' : ''}`}
                       >
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${todo.completed ? 'bg-emerald-500 border-emerald-500' : 'border-[var(--color-border)]'}`}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const fullTodo = todos.find(t => t.id === todo.id)
+                            if (fullTodo) toggleComplete(fullTodo)
+                          }}
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${todo.completed ? 'bg-emerald-500 border-emerald-500' : 'border-[var(--color-border)] hover:border-emerald-500'}`}
+                        >
                           {todo.completed && (
                             <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           )}
-                        </div>
+                        </button>
                         <span className={`text-sm flex-1 ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{todo.title}</span>
                       </div>
                     ))}
@@ -560,37 +590,6 @@ export function TodosPage() {
                   </div>
                 </div>
               ))}
-
-              {/* 未归类任务 */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-[var(--color-text)] flex items-center gap-2 px-3">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                  未归类任务
-                </h3>
-                <div className="space-y-1">
-                  {projectTodos.filter((t: { milestone_id: string | null }) => !t.milestone_id).map((todo: { id: string; title: string; completed: boolean }) => (
-                    <div
-                      key={todo.id}
-                      onClick={() => setSelectedTodoId(todo.id)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--color-text)]/5 cursor-pointer ${selectedTodoId === todo.id ? 'bg-[var(--color-accent)]/10' : ''}`}
-                    >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${todo.completed ? 'bg-emerald-500 border-emerald-500' : 'border-[var(--color-border)]'}`}>
-                        {todo.completed && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <span className={`text-sm flex-1 ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{todo.title}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="px-3">
-                  <MilestoneTaskInput onAdd={(title) => createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: null })} placeholder="添加任务..." />
-                </div>
-              </div>
 
               {/* 添加里程碑 */}
               <div className="pt-6 border-t border-[var(--color-border)]">
@@ -615,13 +614,93 @@ export function TodosPage() {
                   />
                 </div>
               </div>
+
+              {/* 未归类任务 */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-[var(--color-text)] flex items-center gap-2 px-3">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  未归类任务
+                </h3>
+                <div className="space-y-1">
+                  {projectTodos.filter((t: { milestone_id: string | null }) => !t.milestone_id).map((todo: { id: string; title: string; completed: boolean }) => (
+                    <div
+                      key={todo.id}
+                      onClick={() => setSelectedTodoId(todo.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--color-text)]/5 cursor-pointer ${selectedTodoId === todo.id ? 'bg-[var(--color-accent)]/10' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const fullTodo = todos.find(t => t.id === todo.id)
+                          if (fullTodo) toggleComplete(fullTodo)
+                        }}
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${todo.completed ? 'bg-emerald-500 border-emerald-500' : 'border-[var(--color-border)] hover:border-emerald-500'}`}
+                      >
+                        {todo.completed && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                      <span className={`text-sm flex-1 ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{todo.title}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-3">
+                  <MilestoneTaskInput onAdd={(title) => createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: null })} placeholder="添加任务..." />
+                </div>
+              </div>
             </div>
           </div>
         ) : (
           /* 任务清单视图 */
           <>
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-[var(--color-border)]">
-              <h2 className="text-lg font-semibold text-[var(--color-text)]">任务清单</h2>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+                  {filter === 'today' && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                  )}
+                  {filter === 'week' && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                  )}
+                  {filter === 'inbox' && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-17.5 0V6.75a2.25 2.25 0 012.25-2.25h13.5a2.25 2.25 0 012.25 2.25v6.75m-17.5 0v4.5a2.25 2.25 0 002.25 2.25h13.5a2.25 2.25 0 002.25-2.25v-4.5" />
+                    </svg>
+                  )}
+                  {filter === 'completed' && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  {filter === 'deleted' && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  )}
+                  {filter === 'all' && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                  )}
+                </div>
+                <h2 className="text-lg font-semibold text-[var(--color-text)]">
+                  {filter === 'today' && '今天'}
+                  {filter === 'week' && '最近7天'}
+                  {filter === 'inbox' && '收集箱'}
+                  {filter === 'completed' && '已完成'}
+                  {filter === 'deleted' && '垃圾桶'}
+                  {filter === 'all' && '全部任务'}
+                </h2>
+              </div>
               {!isLargeScreen && selectedTodoId && (
                 <button
                   type="button"
@@ -805,43 +884,199 @@ export function TodosPage() {
                         </div>
                       </div>
                       {/* 项目/里程碑关联 */}
-                      <div>
+                      <div ref={projectDropdownRef}>
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
                           关联项目
                         </label>
-                        <select
-                          value={editingProjectId || ''}
-                          onChange={(e) => {
-                            setEditingProjectId(e.target.value || null)
-                            setEditingMilestoneId(null) // 切换项目时清空里程碑
-                          }}
-                          className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
-                        >
-                          <option value="">无项目</option>
-                          {projects.map((project) => (
-                            <option key={project.id} value={project.id}>
-                              {project.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                            className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${showProjectDropdown
+                              ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/20'
+                              : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                              } bg-[var(--color-bg-elevated)]`}
+                          >
+                            {editingProjectId ? (
+                              <>
+                                <div
+                                  className="w-3 h-3 rounded-full shrink-0"
+                                  style={{ backgroundColor: projects.find(p => p.id === editingProjectId)?.color || 'var(--color-accent)' }}
+                                />
+                                <span className="text-sm text-[var(--color-text)] truncate flex-1 text-left">
+                                  {projects.find(p => p.id === editingProjectId)?.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setEditingProjectId(null)
+                                    setEditingMilestoneId(null)
+                                  }}
+                                  className="p-0.5 rounded-full hover:bg-[var(--color-text)]/10 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"
+                                  title="清除"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-sm text-[var(--color-text-muted)] flex-1 text-left">选择项目...</span>
+                                <svg
+                                  className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform ${showProjectDropdown ? 'rotate-180' : ''}`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </>
+                            )}
+                          </button>
+
+                          {showProjectDropdown && (
+                            <div className="absolute z-10 w-full mt-2 py-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg max-h-60 overflow-y-auto">
+                              {editingProjectId && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingProjectId(null)
+                                    setEditingMilestoneId(null)
+                                    setShowProjectDropdown(false)
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5 transition-colors flex items-center gap-2"
+                                >
+                                  <span className="w-3 h-3 rounded-full border border-[var(--color-border)]" />
+                                  <span>无项目</span>
+                                </button>
+                              )}
+                              {projects.map((project) => (
+                                <button
+                                  key={project.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingProjectId(project.id)
+                                    setEditingMilestoneId(null)
+                                    setShowProjectDropdown(false)
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${editingProjectId === project.id
+                                    ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                                    : 'text-[var(--color-text)] hover:bg-[var(--color-text)]/5'
+                                    }`}
+                                >
+                                  <div
+                                    className="w-3 h-3 rounded-full shrink-0"
+                                    style={{ backgroundColor: project.color }}
+                                  />
+                                  <span className="truncate flex-1">{project.name}</span>
+                                  {editingProjectId === project.id && (
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       {editingProjectId && milestones.length > 0 && (
-                        <div>
+                        <div ref={milestoneDropdownRef}>
                           <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
                             关联里程碑
                           </label>
-                          <select
-                            value={editingMilestoneId || ''}
-                            onChange={(e) => setEditingMilestoneId(e.target.value || null)}
-                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-all"
-                          >
-                            <option value="">无里程碑</option>
-                            {milestones.map((milestone) => (
-                              <option key={milestone.id} value={milestone.id}>
-                                {milestone.name}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setShowMilestoneDropdown(!showMilestoneDropdown)}
+                              className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${showMilestoneDropdown
+                                ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/20'
+                                : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                                } bg-[var(--color-bg-elevated)]`}
+                            >
+                              {editingMilestoneId ? (
+                                <>
+                                  <svg className="w-4 h-4 text-[var(--color-accent)] shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                  </svg>
+                                  <span className="text-sm text-[var(--color-text)] truncate flex-1 text-left">
+                                    {milestones.find(m => m.id === editingMilestoneId)?.name}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setEditingMilestoneId(null)
+                                    }}
+                                    className="p-0.5 rounded-full hover:bg-[var(--color-text)]/10 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors shrink-0"
+                                    title="清除"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-sm text-[var(--color-text-muted)] flex-1 text-left">选择里程碑...</span>
+                                  <svg
+                                    className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform ${showMilestoneDropdown ? 'rotate-180' : ''}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </>
+                              )}
+                            </button>
+
+                            {showMilestoneDropdown && (
+                              <div className="absolute z-10 w-full mt-2 py-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg max-h-60 overflow-y-auto">
+                                {editingMilestoneId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingMilestoneId(null)
+                                      setShowMilestoneDropdown(false)
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5 transition-colors flex items-center gap-2"
+                                  >
+                                    <span className="w-3 h-3 rounded-full border border-[var(--color-border)]" />
+                                    <span>无里程碑</span>
+                                  </button>
+                                )}
+                                {milestones.map((milestone) => (
+                                  <button
+                                    key={milestone.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingMilestoneId(milestone.id)
+                                      setShowMilestoneDropdown(false)
+                                    }}
+                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${editingMilestoneId === milestone.id
+                                      ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                                      : 'text-[var(--color-text)] hover:bg-[var(--color-text)]/5'
+                                      }`}
+                                  >
+                                    <svg className={`w-4 h-4 shrink-0 ${editingMilestoneId === milestone.id ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]'}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                    </svg>
+                                    <span className="truncate flex-1">{milestone.name}</span>
+                                    {editingMilestoneId === milestone.id && (
+                                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                       <div className="flex gap-2">
@@ -866,33 +1101,59 @@ export function TodosPage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
+                      {/* 标题 - 点击直接编辑 */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-base font-semibold text-[var(--color-text)]">{selectedTodo.title}</h3>
-                          <div className="flex gap-1">
+                          {editingId === `title-${selectedTodo.id}` ? (
+                            <input
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onBlur={() => {
+                                if (editingTitle.trim() && editingTitle !== selectedTodo.title) {
+                                  updateMutation.mutate({ id: selectedTodo.id, patch: { title: editingTitle.trim() } })
+                                }
+                                setEditingId(null)
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  if (editingTitle.trim() && editingTitle !== selectedTodo.title) {
+                                    updateMutation.mutate({ id: selectedTodo.id, patch: { title: editingTitle.trim() } })
+                                  }
+                                  setEditingId(null)
+                                } else if (e.key === 'Escape') {
+                                  setEditingId(null)
+                                }
+                              }}
+                              autoFocus
+                              className="flex-1 text-base font-semibold text-[var(--color-text)] bg-transparent border-b-2 border-[var(--color-accent)] focus:outline-none"
+                            />
+                          ) : (
+                            <h3
+                              className="text-base font-semibold text-[var(--color-text)] cursor-pointer hover:text-[var(--color-accent)] transition-colors"
+                              onClick={() => {
+                                if (!selectedTodo.deleted_at) {
+                                  setEditingTitle(selectedTodo.title)
+                                  setEditingId(`title-${selectedTodo.id}`)
+                                }
+                              }}
+                              title="点击编辑"
+                            >
+                              {selectedTodo.title}
+                            </h3>
+                          )}
+                          <div className="flex gap-1 ml-2">
                             {!selectedTodo.deleted_at && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => startEdit(selectedTodo)}
-                                  className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors cursor-pointer"
-                                  title="编辑"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                  </svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteMutation.mutate(selectedTodo.id)}
-                                  className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors cursor-pointer"
-                                  title="删除"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                onClick={() => deleteMutation.mutate(selectedTodo.id)}
+                                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors cursor-pointer"
+                                title="删除"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
                             )}
                           </div>
                         </div>
@@ -921,10 +1182,42 @@ export function TodosPage() {
                           {selectedTodo.deleted_at && (
                             <span className="text-sm text-[var(--color-danger)]">已删除</span>
                           )}
-                          {selectedTodo.quadrant && (
-                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium text-white ${getQuadrantColor(selectedTodo.quadrant)} shadow-sm`}>
+                          {/* 优先级象限 - 点击直接编辑 */}
+                          {editingId === `quadrant-${selectedTodo.id}` ? (
+                            <div className="relative">
+                              <QuadrantSelector
+                                value={editingQuadrant}
+                                onChange={(quadrant) => {
+                                  setEditingQuadrant(quadrant)
+                                  updateMutation.mutate({ id: selectedTodo.id, patch: { quadrant } })
+                                  setEditingId(null)
+                                }}
+                              />
+                            </div>
+                          ) : selectedTodo.quadrant ? (
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-xs font-medium text-white ${getQuadrantColor(selectedTodo.quadrant)} shadow-sm cursor-pointer hover:opacity-80 transition-opacity`}
+                              onClick={() => {
+                                if (!selectedTodo.deleted_at) {
+                                  setEditingQuadrant(selectedTodo.quadrant)
+                                  setEditingId(`quadrant-${selectedTodo.id}`)
+                                }
+                              }}
+                              title="点击编辑"
+                            >
                               {getQuadrantLabel(selectedTodo.quadrant)}
                             </span>
+                          ) : !selectedTodo.deleted_at && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingQuadrant(null)
+                                setEditingId(`quadrant-${selectedTodo.id}`)
+                              }}
+                              className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
+                            >
+                              + 添加优先级
+                            </button>
                           )}
                         </div>
 
@@ -953,32 +1246,130 @@ export function TodosPage() {
                         )}
                       </div>
 
-                      {selectedTodo.description && (
-                        <div>
-                          <h4 className="text-sm font-medium text-[var(--color-text)] mb-2">描述</h4>
-                          <p className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap bg-[var(--color-bg-elevated)] rounded-lg p-3">
-                            {selectedTodo.description}
-                          </p>
-                        </div>
-                      )}
+                      {/* 描述 - 点击直接编辑 */}
+                      <div>
+                        <h4 className="text-sm font-medium text-[var(--color-text)] mb-2">描述</h4>
+                        {editingId === `desc-${selectedTodo.id}` ? (
+                          <textarea
+                            value={editingDescription}
+                            onChange={(e) => setEditingDescription(e.target.value)}
+                            onBlur={() => {
+                              const newDesc = editingDescription.trim() || null
+                              if (newDesc !== (selectedTodo.description || '')) {
+                                updateMutation.mutate({ id: selectedTodo.id, patch: { description: newDesc } })
+                              }
+                              setEditingId(null)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
+                                setEditingId(null)
+                              }
+                            }}
+                            autoFocus
+                            rows={4}
+                            placeholder="添加描述..."
+                            className="w-full text-sm text-[var(--color-text)] bg-[var(--color-bg-elevated)] rounded-lg p-3 border-2 border-[var(--color-accent)] focus:outline-none resize-none"
+                          />
+                        ) : (
+                          <div
+                            className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap bg-[var(--color-bg-elevated)] rounded-lg p-3 cursor-pointer hover:bg-[var(--color-bg-elevated)]/80 transition-colors min-h-[60px]"
+                            onClick={() => {
+                              if (!selectedTodo.deleted_at) {
+                                setEditingDescription(selectedTodo.description || '')
+                                setEditingId(`desc-${selectedTodo.id}`)
+                              }
+                            }}
+                            title="点击编辑"
+                          >
+                            {selectedTodo.description || <span className="text-[var(--color-text-muted)]/50 italic">点击添加描述...</span>}
+                          </div>
+                        )}
+                      </div>
 
+                      {/* 时间信息 - 点击直接编辑 */}
                       <div>
                         <h4 className="text-sm font-medium text-[var(--color-text)] mb-2">时间信息</h4>
                         <div className="space-y-2 text-sm">
-                          {selectedTodo.start_date && (
-                            <div className="flex justify-between">
-                              <span className="text-[var(--color-text-muted)]">启动时间：</span>
-                              <span className="text-[var(--color-text)]">{formatDate(selectedTodo.start_date)}</span>
-                            </div>
-                          )}
-                          {selectedTodo.due_date && (
-                            <div className="flex justify-between">
-                              <span className="text-[var(--color-text-muted)]">截止时间：</span>
-                              <span className={`${new Date(selectedTodo.due_date) < new Date() ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>
-                                {formatDate(selectedTodo.due_date)}
+                          {/* 启动时间 */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--color-text-muted)]">启动时间：</span>
+                            {editingId === `start-${selectedTodo.id}` ? (
+                              <input
+                                type="date"
+                                value={editingStartDate}
+                                onChange={(e) => setEditingStartDate(e.target.value)}
+                                onBlur={() => {
+                                  const newDate = editingStartDate ? new Date(editingStartDate).toISOString() : null
+                                  updateMutation.mutate({ id: selectedTodo.id, patch: { start_date: newDate } })
+                                  setEditingId(null)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const newDate = editingStartDate ? new Date(editingStartDate).toISOString() : null
+                                    updateMutation.mutate({ id: selectedTodo.id, patch: { start_date: newDate } })
+                                    setEditingId(null)
+                                  } else if (e.key === 'Escape') {
+                                    setEditingId(null)
+                                  }
+                                }}
+                                autoFocus
+                                className="bg-[var(--color-bg-elevated)] border border-[var(--color-accent)] rounded px-2 py-1 text-[var(--color-text)] focus:outline-none"
+                              />
+                            ) : (
+                              <span
+                                className="text-[var(--color-text)] cursor-pointer hover:text-[var(--color-accent)] transition-colors"
+                                onClick={() => {
+                                  if (!selectedTodo.deleted_at) {
+                                    setEditingStartDate(selectedTodo.start_date ? new Date(selectedTodo.start_date).toISOString().split('T')[0] : '')
+                                    setEditingId(`start-${selectedTodo.id}`)
+                                  }
+                                }}
+                                title="点击编辑"
+                              >
+                                {selectedTodo.start_date ? formatDate(selectedTodo.start_date) : <span className="text-[var(--color-text-muted)]/50 italic">未设置</span>}
                               </span>
-                            </div>
-                          )}
+                            )}
+                          </div>
+                          {/* 截止时间 */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--color-text-muted)]">截止时间：</span>
+                            {editingId === `due-${selectedTodo.id}` ? (
+                              <input
+                                type="date"
+                                value={editingDueDate}
+                                onChange={(e) => setEditingDueDate(e.target.value)}
+                                onBlur={() => {
+                                  const newDate = editingDueDate ? new Date(editingDueDate).toISOString() : null
+                                  updateMutation.mutate({ id: selectedTodo.id, patch: { due_date: newDate } })
+                                  setEditingId(null)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const newDate = editingDueDate ? new Date(editingDueDate).toISOString() : null
+                                    updateMutation.mutate({ id: selectedTodo.id, patch: { due_date: newDate } })
+                                    setEditingId(null)
+                                  } else if (e.key === 'Escape') {
+                                    setEditingId(null)
+                                  }
+                                }}
+                                autoFocus
+                                className="bg-[var(--color-bg-elevated)] border border-[var(--color-accent)] rounded px-2 py-1 text-[var(--color-text)] focus:outline-none"
+                              />
+                            ) : (
+                              <span
+                                className={`cursor-pointer hover:text-[var(--color-accent)] transition-colors ${selectedTodo.due_date && new Date(selectedTodo.due_date) < new Date() ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}
+                                onClick={() => {
+                                  if (!selectedTodo.deleted_at) {
+                                    setEditingDueDate(selectedTodo.due_date ? new Date(selectedTodo.due_date).toISOString().split('T')[0] : '')
+                                    setEditingId(`due-${selectedTodo.id}`)
+                                  }
+                                }}
+                                title="点击编辑"
+                              >
+                                {selectedTodo.due_date ? formatDate(selectedTodo.due_date) : <span className="text-[var(--color-text-muted)]/50 italic">未设置</span>}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex justify-between">
                             <span className="text-[var(--color-text-muted)]">创建时间：</span>
                             <span className="text-[var(--color-text)]">{formatDate(selectedTodo.created_at)}</span>
@@ -986,40 +1377,227 @@ export function TodosPage() {
                         </div>
                       </div>
 
-                      {/* 项目关联信息 */}
-                      {selectedTodo.project_id && (
-                        <div>
-                          <h4 className="text-sm font-medium text-[var(--color-text)] mb-2">项目关联</h4>
-                          <div className="space-y-2 text-sm">
-                            {(() => {
-                              const project = projects.find(p => p.id === selectedTodo.project_id)
-                              return project ? (
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: project.color }}
-                                  />
-                                  <span className="text-[var(--color-text)]">{project.name}</span>
-                                </div>
-                              ) : null
-                            })()}
-                            {selectedTodo.milestone_id && (
-                              <div className="flex justify-between">
-                                <span className="text-[var(--color-text-muted)]">里程碑：</span>
-                                <span className="text-[var(--color-text)]">
-                                  {/* 这里需要从选中项目的里程碑中查找 */}
-                                  {(() => {
-                                    // 由于 milestones 是根据 editingProjectId 获取的，
-                                    // 我们需要在这里单独查询或使用缓存
-                                    // 简单起见，直接显示 milestone_id
-                                    return selectedTodo.milestone_id ? '已关联' : ''
-                                  })()}
-                                </span>
+                      {/* 项目关联信息 - 点击直接编辑 */}
+                      <div>
+                        <h4 className="text-sm font-medium text-[var(--color-text)] mb-2">项目关联</h4>
+                        <div className="space-y-2 text-sm">
+                          {editingId === `project-${selectedTodo.id}` ? (
+                            <div className="space-y-3">
+                              {/* 项目下拉 */}
+                              <div ref={projectDropdownRef} className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                                  className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${showProjectDropdown
+                                    ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/20'
+                                    : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                                    } bg-[var(--color-bg-elevated)]`}
+                                >
+                                  {editingProjectId ? (
+                                    <>
+                                      <div
+                                        className="w-3 h-3 rounded-full shrink-0"
+                                        style={{ backgroundColor: projects.find(p => p.id === editingProjectId)?.color || 'var(--color-accent)' }}
+                                      />
+                                      <span className="text-sm text-[var(--color-text)] truncate flex-1 text-left">
+                                        {projects.find(p => p.id === editingProjectId)?.name}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-sm text-[var(--color-text-muted)] flex-1 text-left">选择项目...</span>
+                                      <svg
+                                        className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform ${showProjectDropdown ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </>
+                                  )}
+                                </button>
+
+                                {showProjectDropdown && (
+                                  <div className="absolute z-10 w-full mt-2 py-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg max-h-60 overflow-y-auto">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingProjectId(null)
+                                        setEditingMilestoneId(null)
+                                        setShowProjectDropdown(false)
+                                        updateMutation.mutate({ id: selectedTodo.id, patch: { project_id: null, milestone_id: null } })
+                                        setEditingId(null)
+                                      }}
+                                      className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5 transition-colors flex items-center gap-2"
+                                    >
+                                      <span className="w-3 h-3 rounded-full border border-[var(--color-border)]" />
+                                      <span>无项目</span>
+                                    </button>
+                                    {projects.map((project) => (
+                                      <button
+                                        key={project.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingProjectId(project.id)
+                                          setEditingMilestoneId(null)
+                                          setShowProjectDropdown(false)
+                                          // 如果没有里程碑则直接保存
+                                          updateMutation.mutate({ id: selectedTodo.id, patch: { project_id: project.id, milestone_id: null } })
+                                          setEditingId(null)
+                                        }}
+                                        className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${editingProjectId === project.id
+                                          ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                                          : 'text-[var(--color-text)] hover:bg-[var(--color-text)]/5'
+                                          }`}
+                                      >
+                                        <div
+                                          className="w-3 h-3 rounded-full shrink-0"
+                                          style={{ backgroundColor: project.color }}
+                                        />
+                                        <span className="truncate flex-1">{project.name}</span>
+                                        {editingProjectId === project.id && (
+                                          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
+
+                              {/* 里程碑下拉 */}
+                              {editingProjectId && milestones.length > 0 && (
+                                <div ref={milestoneDropdownRef} className="relative">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowMilestoneDropdown(!showMilestoneDropdown)}
+                                    className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${showMilestoneDropdown
+                                      ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/20'
+                                      : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                                      } bg-[var(--color-bg-elevated)]`}
+                                  >
+                                    {editingMilestoneId ? (
+                                      <>
+                                        <svg className="w-4 h-4 text-[var(--color-accent)] shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                        </svg>
+                                        <span className="text-sm text-[var(--color-text)] truncate flex-1 text-left">
+                                          {milestones.find(m => m.id === editingMilestoneId)?.name}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="text-sm text-[var(--color-text-muted)] flex-1 text-left">选择里程碑...</span>
+                                        <svg
+                                          className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform ${showMilestoneDropdown ? 'rotate-180' : ''}`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  {showMilestoneDropdown && (
+                                    <div className="absolute z-10 w-full mt-2 py-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg max-h-60 overflow-y-auto">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingMilestoneId(null)
+                                          setShowMilestoneDropdown(false)
+                                        }}
+                                        className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5 transition-colors flex items-center gap-2"
+                                      >
+                                        <span className="w-3 h-3 rounded-full border border-[var(--color-border)]" />
+                                        <span>无里程碑</span>
+                                      </button>
+                                      {milestones.map((milestone) => (
+                                        <button
+                                          key={milestone.id}
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingMilestoneId(milestone.id)
+                                            setShowMilestoneDropdown(false)
+                                            updateMutation.mutate({ id: selectedTodo.id, patch: { project_id: editingProjectId, milestone_id: milestone.id } })
+                                            setEditingId(null)
+                                          }}
+                                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${editingMilestoneId === milestone.id
+                                            ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                                            : 'text-[var(--color-text)] hover:bg-[var(--color-text)]/5'
+                                            }`}
+                                        >
+                                          <svg className={`w-4 h-4 shrink-0 ${editingMilestoneId === milestone.id ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]'}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                          </svg>
+                                          <span className="truncate flex-1">{milestone.name}</span>
+                                          {editingMilestoneId === milestone.id && (
+                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          )}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : selectedTodo.project_id ? (
+                            <div
+                              className="cursor-pointer hover:bg-[var(--color-bg-elevated)] rounded-lg p-2 -m-2 transition-colors"
+                              onClick={() => {
+                                if (!selectedTodo.deleted_at) {
+                                  setEditingProjectId(selectedTodo.project_id)
+                                  setEditingMilestoneId(selectedTodo.milestone_id)
+                                  setEditingId(`project-${selectedTodo.id}`)
+                                }
+                              }}
+                              title="点击编辑"
+                            >
+                              {(() => {
+                                const project = projects.find(p => p.id === selectedTodo.project_id)
+                                return project ? (
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: project.color }}
+                                    />
+                                    <span className="text-[var(--color-text)]">{project.name}</span>
+                                  </div>
+                                ) : null
+                              })()}
+                              {selectedTodo.milestone_id && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                  </svg>
+                                  <span className="text-[var(--color-text-muted)]">
+                                    {milestones.find(m => m.id === selectedTodo.milestone_id)?.name || '已关联'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ) : !selectedTodo.deleted_at && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingProjectId(null)
+                                setEditingMilestoneId(null)
+                                setEditingId(`project-${selectedTodo.id}`)
+                              }}
+                              className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
+                            >
+                              + 关联项目
+                            </button>
+                          )}
                         </div>
-                      )}
+                      </div>
 
                       {/* 子任务 */}
                       {(() => {
@@ -1126,23 +1704,16 @@ function MilestoneTaskInput({ onAdd, placeholder = "添加任务..." }: { onAdd:
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex items-center gap-2">
+      <span className="text-[var(--color-accent)] text-lg">+</span>
       <input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
         placeholder={placeholder}
-        className="flex-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+        className="flex-1 bg-transparent border-none text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none"
       />
-      <button
-        type="button"
-        onClick={handleAdd}
-        disabled={!title.trim()}
-        className="rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        添加
-      </button>
     </div>
   )
 }

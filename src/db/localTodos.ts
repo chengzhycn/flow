@@ -127,10 +127,11 @@ export async function updateLocalTodo(
     const db = await getDatabase()
     const now = nowISO()
 
-    // 构建动态更新 SQL
     const updates: string[] = []
     const values: unknown[] = []
     let paramIndex = 1
+
+    console.log('[updateLocalTodo] Updating todo:', id, 'Patch:', patch)
 
     if (patch.title !== undefined) {
         updates.push(`title = $${paramIndex++}`)

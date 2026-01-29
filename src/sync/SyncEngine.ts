@@ -19,7 +19,19 @@ import {
     incrementRetry,
     type SyncQueueItem,
 } from './SyncQueue'
-import { mergeTodoFromRemote, mergePomodoroFromRemote } from './ConflictResolver'
+import { mergeTodoFromRemote, mergePomodoroFromRemote, mergeProjectFromRemote, mergeMilestoneFromRemote } from './ConflictResolver'
+import {
+    getPendingProjects,
+    markProjectSynced,
+    upsertLocalProjects,
+    getLocalProjectById,
+    getPendingMilestones,
+    markMilestoneSynced,
+    upsertLocalMilestones,
+    getLocalMilestoneById,
+    type LocalProject,
+    type LocalMilestone,
+} from '../db/localProjects'
 
 // 同步状态
 type SyncStatus = 'idle' | 'syncing' | 'error'
@@ -161,7 +173,33 @@ async function incrementalSync(userId: string): Promise<void> {
  * 推送本地变更到远端
  */
 async function pushToRemote(_userId: string): Promise<void> {
-    // 获取待同步的 Todos
+    // 1. 先推送 Projects
+    const pendingProjects = await getPendingProjects()
+    console.log(`[SyncEngine] Pushing ${pendingProjects.length} projects...`)
+
+    for (const project of pendingProjects) {
+        try {
+            await pushProjectToRemote(project)
+            await markProjectSynced(project.id, new Date().toISOString())
+        } catch (error) {
+            console.error(`[SyncEngine] Failed to push project ${project.id}:`, error)
+        }
+    }
+
+    // 2. 推送 Milestones
+    const pendingMilestones = await getPendingMilestones()
+    console.log(`[SyncEngine] Pushing ${pendingMilestones.length} milestones...`)
+
+    for (const milestone of pendingMilestones) {
+        try {
+            await pushMilestoneToRemote(milestone)
+            await markMilestoneSynced(milestone.id, new Date().toISOString())
+        } catch (error) {
+            console.error(`[SyncEngine] Failed to push milestone ${milestone.id}:`, error)
+        }
+    }
+
+    // 3. 推送 Todos
     const pendingTodos = await getPendingTodos()
     console.log(`[SyncEngine] Pushing ${pendingTodos.length} todos...`)
 
@@ -216,6 +254,8 @@ async function pushTodoToRemote(todo: LocalTodo): Promise<void> {
         inbox: todo.inbox,
         sort_order: todo.sort_order,
         parent_id: todo.parent_id,
+        project_id: todo.project_id,
+        milestone_id: todo.milestone_id,
         deleted_at: todo.deleted_at,
         created_at: todo.created_at,
         updated_at: todo.updated_at,
@@ -251,6 +291,50 @@ async function pushPomodoroToRemote(session: LocalPomodoroSession): Promise<void
 }
 
 /**
+ * 推送单个 Project 到远端
+ */
+async function pushProjectToRemote(project: LocalProject): Promise<void> {
+    const remoteData = {
+        id: project.id,
+        user_id: project.user_id,
+        name: project.name,
+        description: project.description,
+        color: project.color,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+        deleted_at: project.deleted_at,
+    }
+
+    const { error } = await supabase
+        .from('projects')
+        .upsert(remoteData, { onConflict: 'id' })
+
+    if (error) throw error
+}
+
+/**
+ * 推送单个 Milestone 到远端
+ */
+async function pushMilestoneToRemote(milestone: LocalMilestone): Promise<void> {
+    const remoteData = {
+        id: milestone.id,
+        project_id: milestone.project_id,
+        name: milestone.name,
+        due_date: milestone.due_date,
+        completed: milestone.completed,
+        sort_order: milestone.sort_order,
+        created_at: milestone.created_at,
+        updated_at: milestone.updated_at,
+    }
+
+    const { error } = await supabase
+        .from('milestones')
+        .upsert(remoteData, { onConflict: 'id' })
+
+    if (error) throw error
+}
+
+/**
  * 处理同步队列项
  */
 async function processSyncQueueItem(item: SyncQueueItem): Promise<void> {
@@ -267,14 +351,86 @@ async function pullFromRemote(userId: string, isFullSync: boolean): Promise<void
 
     // 获取上次同步时间
     let lastPull: string | null = null
-    if (!isFullSync) {
+    if (lastPull) {
         const result = await db.select<[{ value: string }] | []>(
             `SELECT value FROM sync_meta WHERE key = 'last_pull_time'`
         )
         lastPull = result[0]?.value ?? null
     }
 
-    // 拉取 Todos
+    // 1. 拉取 Projects
+    let projectsQuery = supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', userId)
+
+    if (lastPull) {
+        projectsQuery = projectsQuery.gt('updated_at', lastPull)
+    }
+
+    const { data: remoteProjects, error: projectsError } = await projectsQuery
+    if (projectsError) throw projectsError
+
+    console.log(`[SyncEngine] Pulled ${remoteProjects?.length ?? 0} projects from remote`)
+
+    if (remoteProjects && remoteProjects.length > 0) {
+        const mergedProjects: LocalProject[] = []
+        for (const remote of remoteProjects) {
+            const local = await getLocalProjectById(remote.id)
+            const merged = mergeProjectFromRemote(local, remote)
+            mergedProjects.push(merged)
+        }
+        await upsertLocalProjects(mergedProjects)
+    }
+
+    // 2. 拉取 Milestones (通过 project_id 关联，或者拉取该用户所有相关的里程碑? 
+    // 目前 schema 里 milestone 没有 user_id，这是个问题。通常 milestone 属于 project，project 属于 user。
+    // 我们需要 join 或者二次查询。简单起见，如果 sync 逻辑是全量或者基于 project 权限...
+    // 假设 milestones 表有 RLS 策略让用户能拉取到自己 project 下的 milestone。即 select * from milestones where project_id in (user_projects)
+    // Supabase client 应该能处理 RLS。这里我们尝试直接 select。
+    // 如果 milestones 表确实没有 user_id，直接 select * 可能会被 RLS 拦住或者拉取太多。
+    // 检查 migration 002: milestones 确实没有 user_id。
+    // 我们可以先拿到所有 projectIds，然后 where in。或者依赖 supabase 级联查询。
+    // 为简单起见和保持 sync 逻辑一致，我们假设 RLS 允许读取。
+    // 但是这里 query 怎么写？ .in('project_id', userProjectIds) ?
+
+    // **修正**: 为了效率，我们先获取用户所有 project IDs
+    // 但是这里是增量同步... 
+    // 让我们尝试使用 inner join 语法或者假设 RLS 自动过滤。
+    // supabase-js 支持关联查询： .select('*, projects!inner(*)') .eq('projects.user_id', userId)
+
+    let milestonesQuery = supabase
+        .from('milestones')
+        .select('*, projects!inner(user_id)')
+        .eq('projects.user_id', userId)
+
+    if (lastPull) {
+        milestonesQuery = milestonesQuery.gt('updated_at', lastPull)
+    }
+
+    const { data: remoteMilestones, error: milestonesError } = await milestonesQuery
+    if (milestonesError) throw milestonesError
+
+    // 清理一下 data (去除 projects 字段)
+    const cleanMilestones = remoteMilestones?.map(m => {
+        const { projects, ...rest } = m
+        return rest
+    })
+
+    console.log(`[SyncEngine] Pulled ${cleanMilestones?.length ?? 0} milestones from remote`)
+
+    if (cleanMilestones && cleanMilestones.length > 0) {
+        const mergedMilestones: LocalMilestone[] = []
+        for (const remote of cleanMilestones) {
+            const local = await getLocalMilestoneById(remote.id)
+            // @ts-ignore
+            const merged = mergeMilestoneFromRemote(local, remote)
+            mergedMilestones.push(merged)
+        }
+        await upsertLocalMilestones(mergedMilestones)
+    }
+
+    // 3. 拉取 Todos
     let todosQuery = supabase
         .from('todos')
         .select('*')
@@ -368,6 +524,8 @@ export async function forcePushSync(userId: string): Promise<void> {
     try {
         // 将所有本地数据标记为待同步
         const db = await getDatabase()
+        await db.execute(`UPDATE projects SET sync_status = 'pending' WHERE user_id = $1`, [userId])
+        await db.execute(`UPDATE milestones SET sync_status = 'pending' WHERE id IN (SELECT id FROM milestones WHERE project_id IN (SELECT id FROM projects WHERE user_id = $1))`, [userId])
         await db.execute(`UPDATE todos SET sync_status = 'pending' WHERE user_id = $1`, [userId])
         await db.execute(`UPDATE pomodoro_sessions SET sync_status = 'pending' WHERE user_id = $1`, [userId])
 

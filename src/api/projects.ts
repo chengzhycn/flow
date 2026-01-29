@@ -332,6 +332,7 @@ export async function fetchProjectTodos(projectId: string): Promise<{
     title: string
     completed: boolean
     milestone_id: string | null
+    project_id: string
 }[]> {
     if (isTauriEnv()) {
         return getProjectTodos(projectId)
@@ -341,7 +342,7 @@ export async function fetchProjectTodos(projectId: string): Promise<{
     try {
         const { data, error } = await supabase
             .from('todos')
-            .select('id, title, completed, milestone_id')
+            .select('id, title, completed, milestone_id, project_id')
             .eq('project_id', projectId)
             .is('deleted_at', null)
             .order('sort_order', { ascending: true })

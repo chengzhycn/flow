@@ -151,3 +151,134 @@ export function mergePomodoroFromRemote(
     // Pomodoro sessions 通常不会修改，所以简单地使用已存在的本地数据
     return local
 }
+
+/**
+ * 合并 Project 数据
+ */
+export function mergeProjectFromRemote(
+    local: any | null,
+    remote: {
+        id: string
+        user_id: string
+        name: string
+        description: string | null
+        color: string
+        created_at: string
+        updated_at: string
+        deleted_at: string | null
+    }
+): any {
+    if (!local) {
+        return {
+            ...remote,
+            sync_status: 'synced',
+            local_updated_at: remote.updated_at,
+            remote_updated_at: remote.updated_at,
+        }
+    }
+
+    if (local.sync_status === 'synced') {
+        return {
+            ...remote,
+            sync_status: 'synced',
+            local_updated_at: remote.updated_at,
+            remote_updated_at: remote.updated_at,
+        }
+    }
+
+    if (hasConflict(local, remote.updated_at)) {
+        const resolution = resolveConflict(local, {
+            ...remote,
+            local_updated_at: local.local_updated_at,
+        })
+
+        if (resolution.winner === 'remote') {
+            return {
+                ...remote,
+                sync_status: 'synced',
+                local_updated_at: remote.updated_at,
+                remote_updated_at: remote.updated_at,
+            }
+        } else {
+            return {
+                ...local,
+                remote_updated_at: remote.updated_at,
+            }
+        }
+    }
+
+    return {
+        ...remote,
+        sync_status: 'synced',
+        local_updated_at: remote.updated_at,
+        remote_updated_at: remote.updated_at,
+    }
+}
+
+/**
+ * 合并 Milestone 数据
+ */
+export function mergeMilestoneFromRemote(
+    local: any | null,
+    remote: {
+        id: string
+        project_id: string
+        name: string
+        due_date: string | null
+        completed: boolean
+        sort_order: number
+        created_at: string
+        updated_at: string
+    }
+): any {
+    if (!local) {
+        return {
+            ...remote,
+            completed: Boolean(remote.completed),
+            sync_status: 'synced',
+            local_updated_at: remote.updated_at,
+            remote_updated_at: remote.updated_at,
+        }
+    }
+
+    if (local.sync_status === 'synced') {
+        return {
+            ...remote,
+            completed: Boolean(remote.completed),
+            sync_status: 'synced',
+            local_updated_at: remote.updated_at,
+            remote_updated_at: remote.updated_at,
+        }
+    }
+
+    if (hasConflict(local, remote.updated_at)) {
+        const resolution = resolveConflict(local, {
+            ...remote,
+            completed: Boolean(remote.completed),
+            local_updated_at: local.local_updated_at,
+        })
+
+        if (resolution.winner === 'remote') {
+            return {
+                ...remote,
+                completed: Boolean(remote.completed),
+                sync_status: 'synced',
+                local_updated_at: remote.updated_at,
+                remote_updated_at: remote.updated_at,
+            }
+        } else {
+            return {
+                ...local,
+                remote_updated_at: remote.updated_at,
+            }
+        }
+    }
+
+    return {
+        ...remote,
+        completed: Boolean(remote.completed),
+        sync_status: 'synced',
+        local_updated_at: remote.updated_at,
+        remote_updated_at: remote.updated_at,
+    }
+}

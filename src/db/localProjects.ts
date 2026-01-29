@@ -354,12 +354,12 @@ export async function deleteLocalMilestone(id: string): Promise<void> {
  */
 export async function getProjectTaskStats(projectId: string): Promise<{ total: number; completed: number }> {
     const db = await getDatabase()
-    
+
     const totalResult = await db.select<{ count: number }[]>(
         `SELECT COUNT(*) as count FROM todos WHERE project_id = $1 AND deleted_at IS NULL`,
         [projectId]
     )
-    
+
     const completedResult = await db.select<{ count: number }[]>(
         `SELECT COUNT(*) as count FROM todos WHERE project_id = $1 AND deleted_at IS NULL AND completed = 1`,
         [projectId]
@@ -381,14 +381,15 @@ export async function getProjectTodos(projectId: string): Promise<{
     milestone_id: string | null
 }[]> {
     const db = await getDatabase()
-    
+
     const result = await db.select<{
         id: string
         title: string
         completed: number
         milestone_id: string | null
+        project_id: string
     }[]>(
-        `SELECT id, title, completed, milestone_id FROM todos 
+        `SELECT id, title, completed, milestone_id, project_id FROM todos 
          WHERE project_id = $1 AND deleted_at IS NULL 
          ORDER BY sort_order ASC, created_at ASC`,
         [projectId]
@@ -436,6 +437,7 @@ export async function markProjectSynced(id: string, remoteUpdatedAt: string): Pr
     )
 }
 
+
 /**
  * 标记里程碑为已同步
  */
@@ -445,4 +447,91 @@ export async function markMilestoneSynced(id: string, remoteUpdatedAt: string): 
         `UPDATE milestones SET sync_status = 'synced', remote_updated_at = $1 WHERE id = $2`,
         [remoteUpdatedAt, id]
     )
+}
+
+
+/**
+ * 批量更新本地项目（用于同步）
+ */
+export async function upsertLocalProjects(projects: LocalProject[]): Promise<void> {
+    const db = await getDatabase()
+
+    for (const project of projects) {
+        // 检查是否存在
+        const existing = await getLocalProjectById(project.id)
+
+        if (existing) {
+            // 更新
+            await db.execute(
+                `UPDATE projects SET 
+                name = $1, description = $2, color = $3, 
+                updated_at = $4, deleted_at = $5,
+                sync_status = $6, local_updated_at = $7, remote_updated_at = $8
+                WHERE id = $9`,
+                [
+                    project.name, project.description, project.color,
+                    project.updated_at, project.deleted_at,
+                    project.sync_status, project.local_updated_at, project.remote_updated_at,
+                    project.id
+                ]
+            )
+        } else {
+            // 插入
+            await db.execute(
+                `INSERT INTO projects (
+                    id, user_id, name, description, color, 
+                    created_at, updated_at, deleted_at,
+                    sync_status, local_updated_at, remote_updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                [
+                    project.id, project.user_id, project.name, project.description, project.color,
+                    project.created_at, project.updated_at, project.deleted_at,
+                    project.sync_status, project.local_updated_at, project.remote_updated_at
+                ]
+            )
+        }
+    }
+}
+
+/**
+ * 批量更新本地里程碑（用于同步）
+ */
+export async function upsertLocalMilestones(milestones: LocalMilestone[]): Promise<void> {
+    const db = await getDatabase()
+
+    for (const milestone of milestones) {
+        // 检查是否存在
+        const existing = await getLocalMilestoneById(milestone.id)
+
+        if (existing) {
+            // 更新
+            await db.execute(
+                `UPDATE milestones SET 
+                name = $1, due_date = $2, completed = $3, sort_order = $4,
+                updated_at = $5,
+                sync_status = $6, local_updated_at = $7, remote_updated_at = $8
+                WHERE id = $9`,
+                [
+                    milestone.name, milestone.due_date, milestone.completed ? 1 : 0, milestone.sort_order,
+                    milestone.updated_at,
+                    milestone.sync_status, milestone.local_updated_at, milestone.remote_updated_at,
+                    milestone.id
+                ]
+            )
+        } else {
+            // 插入
+            await db.execute(
+                `INSERT INTO milestones (
+                    id, project_id, name, due_date, completed, sort_order, 
+                    created_at, updated_at,
+                    sync_status, local_updated_at, remote_updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                [
+                    milestone.id, milestone.project_id, milestone.name, milestone.due_date, milestone.completed ? 1 : 0, milestone.sort_order,
+                    milestone.created_at, milestone.updated_at,
+                    milestone.sync_status, milestone.local_updated_at, milestone.remote_updated_at
+                ]
+            )
+        }
+    }
 }

@@ -522,101 +522,125 @@ export function TodosPage() {
                     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
                   })[0]?.id
 
-                return selectedProjectMilestones.map((milestone: Milestone) => (
-                  <div
-                    key={milestone.id}
-                    onClick={() => {
-                      setSelectedMilestoneId(milestone.id)
-                      setSelectedTodoId(null)
-                    }}
-                    className={`mb-6 rounded-xl p-4 transition-all cursor-pointer ${milestone.id === selectedMilestoneId
-                      ? 'bg-[var(--color-accent)]/20'
-                      : milestone.id === currentMilestoneId
-                        ? 'bg-[var(--color-accent)]/10'
-                        : 'bg-[var(--color-bg-elevated)]'
-                      }`}
-                  >
-                    {/* Compact Milestone Header */}
-                    <div className="flex items-center gap-2 px-1 mb-2 group">
-                      <button
-                        type="button"
-                        onClick={() => updateMilestoneMutation.mutate({ id: milestone.id, patch: { completed: !milestone.completed } })}
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0 ${milestone.completed ? 'bg-[var(--color-text-muted)] border-[var(--color-text-muted)]' : 'bg-[var(--color-bg)] border-[var(--color-border)] hover:border-[var(--color-accent)]'}`}
-                      >
-                        {milestone.completed && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-                      <div className="flex-1 flex items-center justify-between min-w-0">
-                        <span className={`text-sm font-bold ${milestone.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{milestone.name}</span>
-                        {milestone.due_date && (
-                          <span className={`text-xs shrink-0 ${new Date(milestone.due_date) < new Date() && !milestone.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'}`}>
-                            {new Date(milestone.due_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-all"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
+                return selectedProjectMilestones.map((milestone: Milestone) => {
+                  const milestoneTodos = projectTodos.filter((t: { milestone_id: string | null }) => t.milestone_id === milestone.id)
+                  const total = milestoneTodos.length
+                  const completed = milestoneTodos.filter((t: { completed: boolean }) => t.completed).length
+                  const progress = total > 0 ? (completed / total) * 100 : 0
 
-                    {/* 里程碑下的任务 */}
-                    <div className="space-y-0.5">
-                      {projectTodos.filter((t: { milestone_id: string | null }) => t.milestone_id === milestone.id).map((todo: { id: string; title: string; completed: boolean; deleted_at?: string | null }) => (
-                        <div
-                          key={todo.id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedTodoId(todo.id)
-                            setSelectedMilestoneId(null)
-                          }}
-                          className={`group flex items-stretch rounded-lg overflow-hidden cursor-pointer transition-all ${selectedTodoId === todo.id ? 'bg-[var(--color-accent)]/10' : 'hover:bg-[var(--color-accent)]/5'} ${todo.deleted_at ? 'opacity-60' : ''}`}
+                  return (
+                    <div
+                      key={milestone.id}
+                      onClick={() => {
+                        setSelectedMilestoneId(milestone.id)
+                        setSelectedTodoId(null)
+                      }}
+                      className={`mb-6 rounded-xl p-4 transition-all cursor-pointer ${milestone.id === selectedMilestoneId
+                        ? 'bg-[var(--color-accent)]/20'
+                        : milestone.id === currentMilestoneId
+                          ? 'bg-[var(--color-accent)]/10'
+                          : 'bg-[var(--color-bg-elevated)]'
+                        }`}
+                    >
+                      {/* Compact Milestone Header */}
+                      <div className="flex items-center gap-2 px-1 mb-2 group">
+                        <button
+                          type="button"
+                          onClick={() => updateMilestoneMutation.mutate({ id: milestone.id, patch: { completed: !milestone.completed } })}
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0 ${milestone.completed ? 'bg-[var(--color-text-muted)] border-[var(--color-text-muted)]' : 'bg-[var(--color-bg)] border-[var(--color-border)] hover:border-[var(--color-accent)]'}`}
                         >
-                          <div className={`w-1 shrink-0 ${getQuadrantBarColor(todos.find(t => t.id === todo.id)?.quadrant || null)}`} />
-                          <div className="flex-1 flex items-center gap-2 px-2 py-1.5 min-w-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                const fullTodo = todos.find(t => t.id === todo.id)
-                                if (fullTodo) toggleComplete(fullTodo)
-                              }}
-                              className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0 ${todo.completed ? 'bg-[var(--color-text-muted)] border-[var(--color-text-muted)]' : 'bg-[var(--color-bg)] border-[var(--color-border)] hover:border-[var(--color-accent)]'}`}
-                            >
-                              {todo.completed && (
-                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </button>
-                            <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
-                              <span className={`text-[13px] truncate ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{todo.title}</span>
-                              {todos.find(t => t.id === todo.id)?.due_date && (
-                                <span className={`text-xs ${new Date(todos.find(t => t.id === todo.id)?.due_date!).getTime() < Date.now() && !todo.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'}`}>
-                                  {formatDate(todos.find(t => t.id === todo.id)?.due_date!)}
-                                </span>
-                              )}
-                            </div>
+                          {milestone.completed && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                        <div className="flex-1 flex items-center justify-between min-w-0">
+                          <span className={`text-sm font-bold ${milestone.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{milestone.name}</span>
+                          {milestone.due_date && (
+                            <span className={`text-xs shrink-0 ${new Date(milestone.due_date) < new Date() && !milestone.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'}`}>
+                              {new Date(milestone.due_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-all"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* 进度条 */}
+                      {total > 0 && (
+                        <div className="px-1 mb-3">
+                          <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] mb-1">
+                            <span>进度</span>
+                            <span>{completed}/{total}</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-[var(--color-bg)] rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            />
                           </div>
                         </div>
-                      ))}
-                      <div className="pl-3">
-                        <MilestoneTaskInput onAdd={(title) => {
-                          const today = new Date().toISOString()
-                          createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: milestone.id, start_date: today, due_date: today })
-                        }} />
+                      )}
+
+                      {/* 里程碑下的任务 */}
+                      <div className="space-y-0.5">
+                        {projectTodos.filter((t: { milestone_id: string | null }) => t.milestone_id === milestone.id).map((todo: { id: string; title: string; completed: boolean; deleted_at?: string | null }) => (
+                          <div
+                            key={todo.id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedTodoId(todo.id)
+                              setSelectedMilestoneId(null)
+                            }}
+                            className={`group flex items-stretch rounded-lg overflow-hidden cursor-pointer transition-all ${selectedTodoId === todo.id ? 'bg-[var(--color-accent)]/10' : 'hover:bg-[var(--color-accent)]/5'} ${todo.deleted_at ? 'opacity-60' : ''}`}
+                          >
+                            <div className={`w-1 shrink-0 ${getQuadrantBarColor(todos.find(t => t.id === todo.id)?.quadrant || null)}`} />
+                            <div className="flex-1 flex items-center gap-2 px-2 py-1.5 min-w-0">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  const fullTodo = todos.find(t => t.id === todo.id)
+                                  if (fullTodo) toggleComplete(fullTodo)
+                                }}
+                                className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0 ${todo.completed ? 'bg-[var(--color-text-muted)] border-[var(--color-text-muted)]' : 'bg-[var(--color-bg)] border-[var(--color-border)] hover:border-[var(--color-accent)]'}`}
+                              >
+                                {todo.completed && (
+                                  <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                              <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
+                                <span className={`text-[13px] truncate ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>{todo.title}</span>
+                                {todos.find(t => t.id === todo.id)?.due_date && (
+                                  <span className={`text-xs ${new Date(todos.find(t => t.id === todo.id)?.due_date!).getTime() < Date.now() && !todo.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'}`}>
+                                    {formatDate(todos.find(t => t.id === todo.id)?.due_date!)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="pl-3">
+                          <MilestoneTaskInput onAdd={(title) => {
+                            const today = new Date().toISOString()
+                            createProjectTaskMutation.mutate({ title, project_id: selectedProjectId!, milestone_id: milestone.id, start_date: today, due_date: today })
+                          }} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  )
+                }
+                )
               })()}
 
               {/* 添加里程碑 */}
@@ -1666,75 +1690,97 @@ export function TodosPage() {
                   )}
                 </div>
               ) : selectedMilestone ? (
-                <div className="space-y-4">
-                  <div className="sticky top-0 bg-[var(--color-bg)] pt-3 pb-4">
-                    <div className="flex items-center justify-between px-1">
-                      <h2 className="text-lg font-bold text-[var(--color-text)] leading-tight">里程碑详情</h2>
-                      {!isLargeScreen && (
-                        <button
-                          type="button"
-                          onClick={() => setShowDetailPanel(false)}
-                          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                (() => {
+                  const milestoneTodos = projectTodos.filter((t: { milestone_id: string | null }) => t.milestone_id === selectedMilestone.id)
+                  const total = milestoneTodos.length
+                  const completed = milestoneTodos.filter((t: { completed: boolean }) => t.completed).length
+                  const progress = total > 0 ? (completed / total) * 100 : 0
 
-                  <div className="bg-[var(--color-bg-elevated)] rounded-xl p-6 space-y-6">
+                  return (
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-                          里程碑名称
-                        </label>
-                        <input
-                          type="text"
-                          defaultValue={selectedMilestone.name}
-                          key={`name-${selectedMilestone.id}`}
-                          onBlur={(e) => {
-                            if (e.target.value !== selectedMilestone.name && e.target.value.trim()) {
-                              updateMilestoneMutation.mutate({ id: selectedMilestone.id, patch: { name: e.target.value.trim() } })
-                            }
-                          }}
-                          className="w-full rounded-lg border-none bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all"
-                        />
+                      <div className="sticky top-0 bg-[var(--color-bg)] pt-3 pb-4">
+                        <div className="flex items-center justify-between px-1">
+                          <h2 className="text-lg font-bold text-[var(--color-text)] leading-tight">里程碑详情</h2>
+                          {!isLargeScreen && (
+                            <button
+                              type="button"
+                              onClick={() => setShowDetailPanel(false)}
+                              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-                          截止日期
-                        </label>
-                        <DatePicker
-                          value={selectedMilestone.due_date ? selectedMilestone.due_date.split('T')[0] : ''}
-                          onChange={(value) => {
-                            updateMilestoneMutation.mutate({ id: selectedMilestone.id, patch: { due_date: value || null } })
-                          }}
-                          placeholder="选择日期"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm('确定要删除这个里程碑吗？')) {
-                            deleteMilestoneMutation.mutate(selectedMilestone.id)
-                            setSelectedMilestoneId(null)
-                          }
-                        }}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[var(--color-danger)] bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        删除里程碑
-                      </button>
+                      <div className="bg-[var(--color-bg-elevated)] rounded-xl p-6 space-y-6">
+                        {/* 进度情况 */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium text-[var(--color-text)]">完成进度</h4>
+                            <span className="text-sm text-[var(--color-text-muted)]">{completed}/{total}</span>
+                          </div>
+                          <div className="h-2 w-full bg-[var(--color-bg)] rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+                              里程碑名称
+                            </label>
+                            <input
+                              type="text"
+                              defaultValue={selectedMilestone.name}
+                              key={`name-${selectedMilestone.id}`}
+                              onBlur={(e) => {
+                                if (e.target.value !== selectedMilestone.name && e.target.value.trim()) {
+                                  updateMilestoneMutation.mutate({ id: selectedMilestone.id, patch: { name: e.target.value.trim() } })
+                                }
+                              }}
+                              className="w-full rounded-lg border-none bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+                              截止日期
+                            </label>
+                            <DatePicker
+                              value={selectedMilestone.due_date ? selectedMilestone.due_date.split('T')[0] : ''}
+                              onChange={(value) => {
+                                updateMilestoneMutation.mutate({ id: selectedMilestone.id, patch: { due_date: value || null } })
+                              }}
+                              placeholder="选择日期"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('确定要删除这个里程碑吗？')) {
+                                deleteMilestoneMutation.mutate(selectedMilestone.id)
+                                setSelectedMilestoneId(null)
+                              }
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[var(--color-danger)] bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            删除里程碑
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )
+                })()
               ) : (
                 <div className="text-center py-12">
                   <p className="text-[var(--color-text-muted)]">选择一个任务查看详情</p>

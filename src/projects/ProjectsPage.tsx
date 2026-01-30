@@ -625,11 +625,17 @@ function MilestoneGroup({
     onDeleteMilestone: () => void
     onAddTask: (title: string) => void
 }) {
+    // 计算统计数据
+    const total = todos.length
+    const completed = todos.filter(t => t.completed).length
+
     return (
         <div className="bg-[var(--color-bg-elevated)]/30 rounded-xl p-3 border border-[var(--color-border)]">
             <div className="mb-3">
                 <MilestoneItem
                     milestone={milestone}
+                    total={total}
+                    completed={completed}
                     onToggle={onToggleMilestone}
                     onDelete={onDeleteMilestone}
                 />
@@ -700,14 +706,20 @@ function TaskInput({ onAdd, placeholder }: { onAdd: (title: string) => void, pla
 // 里程碑项组件
 function MilestoneItem({
     milestone,
+    total,
+    completed,
     onToggle,
     onDelete,
     onDelete: _onDelete, // Alias to avoid unused variable warning if needed, but not needed here.
 }: {
     milestone: Milestone
+    total: number
+    completed: number
     onToggle: () => void
     onDelete: () => void
 }) {
+    const progress = total > 0 ? (completed / total) * 100 : 0
+
     return (
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--color-text)]/5 group">
             <button
@@ -725,11 +737,29 @@ function MilestoneItem({
                 )}
             </button>
             <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${milestone.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>
-                    {milestone.name}
-                </p>
+                <div className="flex items-center justify-between">
+                    <p className={`text-sm font-medium ${milestone.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>
+                        {milestone.name}
+                    </p>
+                    {total > 0 && (
+                        <span className="text-xs text-[var(--color-text-muted)]">
+                            {completed}/{total}
+                        </span>
+                    )}
+                </div>
+
+                {/* 进度条 */}
+                {total > 0 && (
+                    <div className="mt-1 h-1.5 w-full bg-[var(--color-border)] rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                )}
+
                 {milestone.due_date && (
-                    <p className={`text-xs ${new Date(milestone.due_date) < new Date() && !milestone.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'
+                    <p className={`text-xs mt-1 ${new Date(milestone.due_date) < new Date() && !milestone.completed ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'
                         }`}>
                         截止: {new Date(milestone.due_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
                     </p>
@@ -747,3 +777,4 @@ function MilestoneItem({
         </div>
     )
 }
+

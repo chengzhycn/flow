@@ -9,6 +9,7 @@ import { QuadrantsPage } from '@/todos/QuadrantsPage'
 import { PomodoroPage } from '@/pomodoro/PomodoroPage'
 import { CalendarPage } from '@/calendar/CalendarPage'
 import { SettingsPage } from '@/settings/SettingsPage'
+import { QuickAddPage } from '@/quick-add/QuickAddPage'
 
 const queryClient = new QueryClient()
 
@@ -63,6 +64,14 @@ function AppRoutes() {
             <Layout>
               <SettingsPage />
             </Layout>
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/quick-add"
+        element={
+          <AuthGuard>
+            <QuickAddPage />
           </AuthGuard>
         }
       />

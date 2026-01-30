@@ -3,11 +3,14 @@ import { useThemeStore, applyTheme } from './themeStore'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const mode = useThemeStore((s) => s.mode)
+  const loadTheme = useThemeStore((s) => s.loadTheme)
 
+  // 初始化时从数据库加载主题
   useEffect(() => {
-    applyTheme(mode)
-  }, [mode])
+    loadTheme()
+  }, [loadTheme])
 
+  // 监听系统主题变化
   useEffect(() => {
     if (mode !== 'system') return
     const mql = window.matchMedia('(prefers-color-scheme: dark)')

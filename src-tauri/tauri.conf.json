@@ -12,11 +12,27 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Flow",
         "width": 800,
         "height": 600,
         "resizable": true,
         "fullscreen": false
+      },
+      {
+        "label": "quick-add",
+        "title": "Collection Box",
+        "url": "/quick-add",
+        "width": 320,
+        "height": 400,
+        "resizable": false,
+        "decorations": false,
+        "transparent": false,
+        "visible": false,
+        "alwaysOnTop": true,
+        "hiddenTitle": true,
+        "skipTaskbar": true,
+        "focus": true
       }
     ],
     "security": {

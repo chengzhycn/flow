@@ -492,7 +492,10 @@ export function TodosPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-xs text-[var(--color-text-muted)] font-medium bg-[var(--color-bg-elevated)] px-2 py-1 rounded">
-                    {projectTaskStats.completed}/{projectTaskStats.total}
+                    任务: {projectTaskStats.completed}/{projectTaskStats.total}
+                  </div>
+                  <div className="text-xs text-[var(--color-text-muted)] font-medium bg-[var(--color-bg-elevated)] px-2 py-1 rounded">
+                    里程碑: {selectedProjectMilestones.filter((m: Milestone) => m.completed).length}/{selectedProjectMilestones.length}
                   </div>
                   <button
                     type="button"

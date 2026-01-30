@@ -20,6 +20,7 @@ type QuadrantViewProps = {
   onTodoClick: (todo: Todo, event: React.MouseEvent) => void
   selectedTodoId: string | null
   userId: string
+  showCompleted: boolean
 }
 
 type QuadrantConfig = {
@@ -233,6 +234,7 @@ function QuadrantCard({
   userId,
   onToggleComplete,
   onDelete,
+  showCompleted,
 }: {
   config: QuadrantConfig
   todos: Todo[]
@@ -241,6 +243,7 @@ function QuadrantCard({
   userId: string
   onToggleComplete: (todo: Todo) => void
   onDelete: (id: string) => void
+  showCompleted: boolean
 }) {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -283,7 +286,7 @@ function QuadrantCard({
     })
   }
 
-  const quadrantTodos = todos.filter(t => t.quadrant === config.id && !t.deleted_at && !t.completed && !t.parent_id)
+  const quadrantTodos = todos.filter(t => t.quadrant === config.id && !t.deleted_at && (showCompleted || !t.completed) && !t.parent_id)
 
   return (
     <div
@@ -383,7 +386,7 @@ function QuadrantCard({
   )
 }
 
-export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: QuadrantViewProps) {
+export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId, showCompleted }: QuadrantViewProps) {
   const queryClient = useQueryClient()
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null)
 
@@ -475,6 +478,7 @@ export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: Qu
             userId={userId}
             onToggleComplete={toggleComplete}
             onDelete={handleDelete}
+            showCompleted={showCompleted}
           />
           {/* 右上：重要不紧急 */}
           <QuadrantCard
@@ -485,6 +489,7 @@ export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: Qu
             userId={userId}
             onToggleComplete={toggleComplete}
             onDelete={handleDelete}
+            showCompleted={showCompleted}
           />
 
           {/* 左下：不重要但紧急 */}
@@ -496,6 +501,7 @@ export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: Qu
             userId={userId}
             onToggleComplete={toggleComplete}
             onDelete={handleDelete}
+            showCompleted={showCompleted}
           />
           {/* 右下：不重要不紧急 */}
           <QuadrantCard
@@ -506,6 +512,7 @@ export function QuadrantsView({ todos, onTodoClick, selectedTodoId, userId }: Qu
             userId={userId}
             onToggleComplete={toggleComplete}
             onDelete={handleDelete}
+            showCompleted={showCompleted}
           />
         </div>
       </div>

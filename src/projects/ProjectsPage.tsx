@@ -45,6 +45,10 @@ export function ProjectsPage() {
     const [rightSidebarWidth, setRightSidebarWidth] = useState(420)
     const [isResizingRight, setIsResizingRight] = useState(false)
 
+    // Per-milestone visibility state (key: milestoneId | 'unclassified')
+    const [showCompletedTasksMap, setShowCompletedTasksMap] = useState<Record<string, boolean>>({})
+    const [showCompletedMilestones, setShowCompletedMilestones] = useState(false)
+
     const queryClient = useQueryClient()
     const { user, loading: userLoading } = useUser()
     const userId = user?.id ?? ''
@@ -244,7 +248,12 @@ export function ProjectsPage() {
         })
     }
 
-
+    function toggleShowCompletedTasks(key: string) {
+        setShowCompletedTasksMap(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }))
+    }
 
     function getProgressPercentage(completed: number, total: number): number {
         if (total === 0) return 0
@@ -376,6 +385,7 @@ export function ProjectsPage() {
                                                 )}
                                             </div>
                                         </div>
+
                                         <div className="flex gap-1">
                                             {!isLargeScreen && (
                                                 <button
@@ -388,6 +398,7 @@ export function ProjectsPage() {
                                                     </svg>
                                                 </button>
                                             )}
+
                                             <button
                                                 type="button"
                                                 onClick={() => setEditingProject(selectedProject)}
@@ -436,56 +447,104 @@ export function ProjectsPage() {
 
                                     {/* 任务分组显示 */}
                                     <div className="space-y-8">
+                                        {/* 里程碑标题栏 - 包含显示/隐藏已完成里程碑按钮 */}
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-sm font-semibold text-[var(--color-text)] flex items-center gap-2">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                                里程碑
+                                            </h3>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCompletedMilestones(!showCompletedMilestones)}
+                                                className="p-1.5 rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)]"
+                                                title={showCompletedMilestones ? "隐藏已完成里程碑" : "显示已完成里程碑"}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    {showCompletedMilestones ? (
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    ) : (
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                                    )}
+                                                </svg>
+                                            </button>
+                                        </div>
+
                                         {/* 里程碑分组 */}
-                                        {milestones.map((milestone) => (
-                                            <MilestoneGroup
-                                                key={milestone.id}
-                                                milestone={milestone}
-                                                todos={projectTodos.filter(t => t.milestone_id === milestone.id)}
-                                                onToggleMilestone={() => updateMilestoneMutation.mutate({
-                                                    id: milestone.id,
-                                                    patch: { completed: !milestone.completed }
-                                                })}
-                                                onDeleteMilestone={() => {
-                                                    if (confirm('确定要删除这个里程碑吗？')) {
-                                                        deleteMilestoneMutation.mutate(milestone.id)
-                                                    }
-                                                }}
-                                                onAddTask={(title) => handleCreateTask(title, milestone.id)}
-                                            />
-                                        ))}
+                                        {milestones
+                                            .filter(m => showCompletedMilestones || !m.completed)
+                                            .map((milestone) => (
+                                                <MilestoneGroup
+                                                    key={milestone.id}
+                                                    milestone={milestone}
+                                                    todos={projectTodos.filter(t => t.milestone_id === milestone.id)}
+                                                    showCompleted={!!showCompletedTasksMap[milestone.id]}
+                                                    onToggleShowCompleted={() => toggleShowCompletedTasks(milestone.id)}
+                                                    onToggleMilestone={() => updateMilestoneMutation.mutate({
+                                                        id: milestone.id,
+                                                        patch: { completed: !milestone.completed }
+                                                    })}
+                                                    onDeleteMilestone={() => {
+                                                        if (confirm('确定要删除这个里程碑吗？')) {
+                                                            deleteMilestoneMutation.mutate(milestone.id)
+                                                        }
+                                                    }}
+                                                    onAddTask={(title) => handleCreateTask(title, milestone.id)}
+                                                />
+                                            ))}
 
                                         {/* 未归类任务 */}
                                         <div className="space-y-3">
-                                            <h3 className="text-sm font-semibold text-[var(--color-text)] flex items-center gap-2 px-3">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                                </svg>
-                                                未归类任务
-                                            </h3>
+                                            <div className="flex items-center justify-between px-3">
+                                                <h3 className="text-sm font-semibold text-[var(--color-text)] flex items-center gap-2">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                    </svg>
+                                                    未归类任务
+
+                                                </h3>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleShowCompletedTasks('unclassified')}
+                                                    className="p-1 rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)]"
+                                                    title={showCompletedTasksMap['unclassified'] ? "隐藏已完成任务" : "显示已完成任务"}
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        {showCompletedTasksMap['unclassified'] ? (
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        ) : (
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                                        )}
+                                                    </svg>
+                                                </button>
+                                            </div>
                                             <div className="space-y-1">
-                                                {projectTodos.filter(t => !t.milestone_id).map((todo) => (
-                                                    <div
-                                                        key={todo.id}
-                                                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--color-text)]/5"
-                                                    >
+                                                {projectTodos
+                                                    .filter(t => !t.milestone_id)
+                                                    .filter(t => showCompletedTasksMap['unclassified'] || !t.completed)
+                                                    .map((todo) => (
                                                         <div
-                                                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${todo.completed
-                                                                ? 'bg-emerald-500 border-emerald-500'
-                                                                : 'border-[var(--color-border)]'
-                                                                }`}
+                                                            key={todo.id}
+                                                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--color-text)]/5"
                                                         >
-                                                            {todo.completed && (
-                                                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                                </svg>
-                                                            )}
+                                                            <div
+                                                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${todo.completed
+                                                                    ? 'bg-emerald-500 border-emerald-500'
+                                                                    : 'border-[var(--color-border)]'
+                                                                    }`}
+                                                            >
+                                                                {todo.completed && (
+                                                                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                )}
+                                                            </div>
+                                                            <span className={`text-sm flex-1 ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>
+                                                                {todo.title}
+                                                            </span>
                                                         </div>
-                                                        <span className={`text-sm flex-1 ${todo.completed ? 'text-[var(--color-text-muted)] line-through' : 'text-[var(--color-text)]'}`}>
-                                                            {todo.title}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                                                    ))}
                                             </div>
                                             <div className="px-3">
                                                 <TaskInput onAdd={(title) => handleCreateTask(title, null)} placeholder="添加任务..." />
@@ -532,8 +591,6 @@ export function ProjectsPage() {
                     </div>
                 </>
             )}
-
-
 
             {/* 编辑项目 Modal */}
             {editingProject && (
@@ -607,27 +664,29 @@ export function ProjectsPage() {
     )
 }
 
-
-
-
-
 // 里程碑分组组件
 function MilestoneGroup({
     milestone,
     todos,
     onToggleMilestone,
     onDeleteMilestone,
-    onAddTask
+    onAddTask,
+    showCompleted,
+    onToggleShowCompleted,
 }: {
     milestone: Milestone
     todos: { id: string; title: string; completed: boolean }[]
     onToggleMilestone: () => void
     onDeleteMilestone: () => void
+    onToggleShowCompleted: () => void
     onAddTask: (title: string) => void
+    showCompleted: boolean
 }) {
     // 计算统计数据
     const total = todos.length
-    const completed = todos.filter(t => t.completed).length
+    const completedCount = todos.filter(t => t.completed).length
+
+    const visibleTodos = todos.filter(t => showCompleted || !t.completed)
 
     return (
         <div className="bg-[var(--color-bg-elevated)]/30 rounded-xl p-3 border border-[var(--color-border)]">
@@ -635,15 +694,17 @@ function MilestoneGroup({
                 <MilestoneItem
                     milestone={milestone}
                     total={total}
-                    completed={completed}
+                    completed={completedCount}
                     onToggle={onToggleMilestone}
                     onDelete={onDeleteMilestone}
+                    onToggleShowCompleted={onToggleShowCompleted}
+                    showCompleted={showCompleted}
                 />
             </div>
 
             {/* 任务列表 */}
             <div className="pl-9 space-y-1 mb-3">
-                {todos.map((todo) => (
+                {visibleTodos.map((todo) => (
                     <div
                         key={todo.id}
                         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--color-text)]/5"
@@ -710,13 +771,17 @@ function MilestoneItem({
     completed,
     onToggle,
     onDelete,
-    onDelete: _onDelete, // Alias to avoid unused variable warning if needed, but not needed here.
+    onDelete: _onDelete,
+    onToggleShowCompleted,
+    showCompleted,
 }: {
     milestone: Milestone
     total: number
     completed: number
     onToggle: () => void
     onDelete: () => void
+    onToggleShowCompleted: () => void
+    showCompleted: boolean
 }) {
     const progress = total > 0 ? (completed / total) * 100 : 0
 
@@ -765,10 +830,28 @@ function MilestoneItem({
                     </p>
                 )}
             </div>
+
+            {/* Show Tasks Toggle - always visible */}
+            <button
+                type="button"
+                onClick={onToggleShowCompleted}
+                className="p-1.5 rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-elevated)]"
+                title={showCompleted ? "隐藏已完成任务" : "显示已完成任务"}
+            >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {showCompleted ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    )}
+                </svg>
+            </button>
+
             <button
                 type="button"
                 onClick={onDelete}
-                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] opacity-0 group-hover:opacity-100 transition-all"
+                className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-all"
+                title="删除里程碑"
             >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -777,4 +860,3 @@ function MilestoneItem({
         </div>
     )
 }
-

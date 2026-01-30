@@ -6,6 +6,7 @@ interface MonthViewProps {
   todos: Todo[]
   onTodoClick?: (todo: Todo, event: React.MouseEvent) => void
   selectedTodoId?: string | null
+  showCompleted: boolean
 }
 
 interface TaskBar {
@@ -21,7 +22,7 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
   const month = currentDate.getMonth()
   const calendarDays = getMonthCalendarDays(year, month)
   const today = new Date()
-  
+
   const weekDayNames = ['日', '一', '二', '三', '四', '五', '六']
 
   // Filter todos that have both start_date and due_date within or spanning the visible calendar
@@ -31,23 +32,23 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
   const visibleTodos = todos.filter((todo) => {
     if (todo.deleted_at) return false
     if (!todo.start_date && !todo.due_date) return false
-    
+
     const startDate = todo.start_date ? new Date(todo.start_date) : null
     const dueDate = todo.due_date ? new Date(todo.due_date) : null
-    
+
     // Check if the todo is visible in this calendar view
     if (startDate && dueDate) {
       return startDate <= lastVisibleDate && dueDate >= firstVisibleDate
     }
-    
+
     if (startDate) {
       return startDate >= firstVisibleDate && startDate <= lastVisibleDate
     }
-    
+
     if (dueDate) {
       return dueDate >= firstVisibleDate && dueDate <= lastVisibleDate
     }
-    
+
     return false
   })
 
@@ -58,11 +59,11 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
     const slotOccupancy: boolean[][][] = Array.from({ length: 6 }, () =>
       Array.from({ length: 7 }, () => [])
     )
-    
+
     visibleTodos.forEach((todo) => {
       const startDate = todo.start_date ? new Date(todo.start_date) : (todo.due_date ? new Date(todo.due_date) : null)
       const dueDate = todo.due_date ? new Date(todo.due_date) : (todo.start_date ? new Date(todo.start_date) : null)
-      
+
       if (!startDate || !dueDate) return
 
       // Normalize dates for comparison
@@ -77,27 +78,27 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
         const colIndex = index % 7
         const dayDate = new Date(day.date)
         dayDate.setHours(0, 0, 0, 0)
-        
+
         // Check if this is the start of a bar segment in this row
         const isStartOfBar = isSameDay(dayDate, normalizedStart) || (colIndex === 0 && dayDate > normalizedStart && dayDate <= normalizedEnd)
-        
+
         if (isStartOfBar) {
           // Calculate how many columns this bar spans in this row
           let endColIndex = colIndex
           for (let i = colIndex; i < 7; i++) {
             const checkIndex = rowIndex * 7 + i
             if (checkIndex >= calendarDays.length) break
-            
+
             const checkDate = new Date(calendarDays[checkIndex].date)
             checkDate.setHours(0, 0, 0, 0)
-            
+
             if (checkDate <= normalizedEnd) {
               endColIndex = i
             } else {
               break
             }
           }
-          
+
           // 找到一个在所有覆盖列都空闲的槽位
           let slot = 0
           while (true) {
@@ -111,12 +112,12 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
             if (slotAvailable) break
             slot++
           }
-          
+
           // 标记槽位被占用
           for (let col = colIndex; col <= endColIndex; col++) {
             slotOccupancy[rowIndex][col][slot] = true
           }
-          
+
           rows[rowIndex].push({
             todo,
             startCol: colIndex,
@@ -127,7 +128,7 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
         }
       })
     })
-    
+
     return rows
   }
 
@@ -139,13 +140,13 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
   // 计算每个单元格中溢出的任务数量（基于槽位）
   function calculateOverflowPerCell(): Map<string, { count: number; todos: Todo[] }> {
     const overflowMap = new Map<string, { count: number; todos: Todo[] }>()
-    
+
     // 对于每行，统计每个单元格有多少任务超出了可见槽位
     taskBarsPerRow.forEach((bars, rowIndex) => {
       // 创建一个数组，记录每列中超出槽位限制的任务
       const overflowPerCol: Todo[][] = [[], [], [], [], [], [], []]
       const visiblePerCol: number[] = [0, 0, 0, 0, 0, 0, 0]
-      
+
       bars.forEach((bar) => {
         // 这个任务条覆盖的所有列
         for (let col = bar.startCol; col <= bar.endCol; col++) {
@@ -156,7 +157,7 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
           }
         }
       })
-      
+
       // 检查每列是否有溢出
       overflowPerCol.forEach((todos, colIndex) => {
         if (todos.length > 0) {
@@ -172,7 +173,7 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
         }
       })
     })
-    
+
     return overflowMap
   }
 
@@ -196,9 +197,8 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
         {weekDayNames.map((name, index) => (
           <div
             key={name}
-            className={`text-center py-2 text-sm font-medium ${
-              index === 0 || index === 6 ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'
-            }`}
+            className={`text-center py-2 text-sm font-medium ${index === 0 || index === 6 ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'
+              }`}
           >
             {name}
           </div>
@@ -212,29 +212,27 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
             {/* Day cells */}
             {calendarDays.slice(rowIndex * 7, (rowIndex + 1) * 7).map((day) => {
               const isToday = isSameDay(day.date, today)
-              
+
               return (
                 <div
                   key={day.date.toISOString()}
-                  className={`bg-[var(--color-bg)] p-2 min-h-[100px] relative ${
-                    !day.isCurrentMonth ? 'opacity-40' : ''
-                  }`}
+                  className={`bg-[var(--color-bg)] p-2 min-h-[100px] relative ${!day.isCurrentMonth ? 'opacity-40' : ''
+                    }`}
                 >
                   <div
-                    className={`text-sm font-medium ${
-                      isToday
+                    className={`text-sm font-medium ${isToday
                         ? 'w-7 h-7 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center'
                         : day.isCurrentMonth
-                        ? 'text-[var(--color-text)]'
-                        : 'text-[var(--color-text-muted)]'
-                    }`}
+                          ? 'text-[var(--color-text)]'
+                          : 'text-[var(--color-text-muted)]'
+                      }`}
                   >
                     {day.dayOfMonth}
                   </div>
                 </div>
               )
             })}
-            
+
             {/* Task bars overlay for this row */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ top: '40px' }}>
               {taskBarsPerRow[rowIndex]
@@ -244,13 +242,12 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
                   const widthPercent = ((bar.endCol - bar.startCol + 1) / 7) * 100
                   const topOffset = bar.slot * 22 // 使用槽位确定垂直位置
                   const isSelected = selectedTodoId === bar.todo.id
-                  
+
                   return (
                     <div
                       key={`${bar.todo.id}-${rowIndex}`}
-                      className={`absolute h-5 rounded-sm pointer-events-auto cursor-pointer transition-all ${getQuadrantColor(bar.todo.quadrant)} ${
-                        bar.todo.completed ? 'opacity-50' : ''
-                      } ${isSelected ? 'ring-2 ring-white ring-offset-1 ring-offset-[var(--color-accent)]' : 'hover:brightness-110'}`}
+                      className={`absolute h-5 rounded-sm pointer-events-auto cursor-pointer transition-all ${getQuadrantColor(bar.todo.quadrant)} ${bar.todo.completed ? 'opacity-50' : ''
+                        } ${isSelected ? 'ring-2 ring-white ring-offset-1 ring-offset-[var(--color-accent)]' : 'hover:brightness-110'}`}
                       style={{
                         left: `calc(${leftPercent}% + 4px)`,
                         width: `calc(${widthPercent}% - 8px)`,
@@ -266,16 +263,16 @@ export function MonthView({ currentDate, todos, onTodoClick, selectedTodoId }: M
                   )
                 })}
             </div>
-            
+
             {/* Overflow indicators for each cell */}
             {calendarDays.slice(rowIndex * 7, (rowIndex + 1) * 7).map((day, colIndex) => {
               const overflow = overflowPerCell.get(day.date.toISOString())
               if (!overflow) return null
-              
+
               const leftPercent = (colIndex / 7) * 100
               const widthPercent = (1 / 7) * 100
               const topOffset = MAX_VISIBLE_SLOTS * 22 + 40 // Below the visible tasks
-              
+
               return (
                 <div
                   key={`overflow-${day.date.toISOString()}`}

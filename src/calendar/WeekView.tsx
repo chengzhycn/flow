@@ -30,6 +30,7 @@ interface WeekViewProps {
   onTodoClick?: (todo: Todo, event: React.MouseEvent) => void
   selectedTodoId?: string | null
   onUpdateTodoDate?: (todoId: string, newDate: Date) => void
+  showCompleted: boolean
 }
 
 interface DayCardProps {
@@ -78,14 +79,14 @@ function DraggableTodoItem({
 }) {
   // 多日任务不允许拖拽
   const isMultiDay = isMultiDayTask(todo)
-  
+
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     isDragging,
-  } = useDraggable({ 
+  } = useDraggable({
     id: todo.id,
     disabled: isMultiDay,
   })
@@ -106,15 +107,13 @@ function DraggableTodoItem({
           onTodoClick?.(todo, e)
         }
       }}
-      className={`flex items-stretch rounded-lg overflow-hidden transition-colors ${
-        isMultiDay ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
-      } ${
-        selectedTodoId === todo.id
+      className={`flex items-stretch rounded-lg overflow-hidden transition-colors ${isMultiDay ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
+        } ${selectedTodoId === todo.id
           ? 'bg-[var(--color-accent)]/20 ring-1 ring-[var(--color-accent)]/30'
-          : todo.completed 
-            ? 'bg-[var(--color-bg)]/50 hover:bg-[var(--color-bg)]/70' 
+          : todo.completed
+            ? 'bg-[var(--color-bg)]/50 hover:bg-[var(--color-bg)]/70'
             : 'bg-[var(--color-bg)] hover:bg-[var(--color-bg)]/80'
-      } ${isDragging ? 'shadow-lg ring-2 ring-[var(--color-accent)]/30 z-50' : ''}`}
+        } ${isDragging ? 'shadow-lg ring-2 ring-[var(--color-accent)]/30 z-50' : ''}`}
     >
       {/* 左侧颜色条 */}
       <div className={`w-1 shrink-0 ${todo.quadrant ? getQuadrantColor(todo.quadrant) : 'bg-transparent'}`} />
@@ -125,11 +124,10 @@ function DraggableTodoItem({
             e.stopPropagation()
             onToggleComplete(todo)
           }}
-          className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-            todo.completed 
-              ? 'bg-emerald-500 border-emerald-500' 
-              : 'border-[var(--color-border)] hover:border-emerald-500'
-          }`}
+          className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${todo.completed
+            ? 'bg-emerald-500 border-emerald-500'
+            : 'border-[var(--color-border)] hover:border-emerald-500'
+            }`}
         >
           {todo.completed && (
             <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
@@ -151,11 +149,10 @@ function DragOverlayTodoItem({ todo }: { todo: Todo }) {
     <div className="flex items-stretch rounded-lg overflow-hidden bg-[var(--color-bg-elevated)] shadow-xl ring-2 ring-[var(--color-accent)]/50 border border-[var(--color-border)]">
       <div className={`w-1 shrink-0 ${todo.quadrant ? getQuadrantColor(todo.quadrant) : 'bg-transparent'}`} />
       <div className="flex items-start gap-2 p-2 flex-1">
-        <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-          todo.completed 
-            ? 'bg-emerald-500 border-emerald-500' 
-            : 'border-[var(--color-border)]'
-        }`}>
+        <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${todo.completed
+          ? 'bg-emerald-500 border-emerald-500'
+          : 'border-[var(--color-border)]'
+          }`}>
           {todo.completed && (
             <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -184,16 +181,14 @@ function DayCard({ day, todos, isToday, inputValue, onInputChange, onSubmit, onT
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[120px] flex flex-col rounded-xl overflow-hidden shadow-sm transition-all ${
-        isToday 
-          ? 'bg-amber-50 dark:bg-amber-500/20' 
-          : 'bg-[var(--color-bg-elevated)]'
-      } ${isOver ? 'ring-2 ring-[var(--color-accent)] scale-[1.02]' : ''}`}
+      className={`flex-1 min-w-[120px] flex flex-col rounded-xl overflow-hidden shadow-sm transition-all ${isToday
+        ? 'bg-amber-50 dark:bg-amber-500/20'
+        : 'bg-[var(--color-bg-elevated)]'
+        } ${isOver ? 'ring-2 ring-[var(--color-accent)] scale-[1.02]' : ''}`}
     >
       {/* Day header */}
-      <div className={`shrink-0 px-3 py-3 text-center ${
-        isToday ? 'bg-amber-100 dark:bg-amber-500/30' : ''
-      }`}>
+      <div className={`shrink-0 px-3 py-3 text-center ${isToday ? 'bg-amber-100 dark:bg-amber-500/30' : ''
+        }`}>
         <div className={`text-xs font-medium ${isToday ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]'}`}>
           {getDayName(day.getDay())}
         </div>
@@ -243,10 +238,10 @@ function DayCard({ day, todos, isToday, inputValue, onInputChange, onSubmit, onT
   )
 }
 
-export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, onTodoClick, selectedTodoId, onUpdateTodoDate }: WeekViewProps) {
+export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, onTodoClick, selectedTodoId, onUpdateTodoDate, showCompleted }: WeekViewProps) {
   const [quickAddInputs, setQuickAddInputs] = useState<Record<string, string>>({})
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null)
-  
+
   const weekDays = getWeekDays(currentDate)
   const { start, end } = getWeekRange(currentDate)
   const today = new Date()
@@ -267,17 +262,18 @@ export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, o
   // Filter todos for this week (those with start_date or due_date in this week)
   const weekTodos = todos.filter((todo) => {
     if (todo.deleted_at) return false
-    
+    if (!showCompleted && todo.completed) return false
+
     const startDate = todo.start_date ? new Date(todo.start_date) : null
     const dueDate = todo.due_date ? new Date(todo.due_date) : null
-    
+
     // Check if start_date or due_date falls within this week
     if (startDate && isDateInRange(startDate, start, end)) return true
     if (dueDate && isDateInRange(dueDate, start, end)) return true
-    
+
     // Check if the todo spans across this week
     if (startDate && dueDate && startDate <= end && dueDate >= start) return true
-    
+
     return false
   })
 
@@ -291,18 +287,18 @@ export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, o
     return weekTodos.filter((todo) => {
       const startDate = todo.start_date ? new Date(todo.start_date) : null
       const dueDate = todo.due_date ? new Date(todo.due_date) : null
-      
+
       // If has both dates, show on all days between
       if (startDate && dueDate) {
         return isDateInRange(day, startDate, dueDate)
       }
-      
+
       // If only start_date, show on that day
       if (startDate && isSameDay(startDate, day)) return true
-      
+
       // If only due_date, show on that day
       if (dueDate && isSameDay(dueDate, day)) return true
-      
+
       return false
     })
   }
@@ -315,7 +311,7 @@ export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, o
     const key = toLocalISOString(day)
     const title = quickAddInputs[key]?.trim()
     if (!title) return
-    
+
     onCreateTodo(title, day)
     setQuickAddInputs((prev) => ({ ...prev, [key]: '' }))
   }
@@ -342,10 +338,10 @@ export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, o
     if (overId.startsWith('day-')) {
       const targetDayKey = overId.replace('day-', '')
       const newDate = new Date(targetDayKey)
-      const currentDate = activeTodoItem.start_date 
-        ? new Date(activeTodoItem.start_date) 
-        : activeTodoItem.due_date 
-          ? new Date(activeTodoItem.due_date) 
+      const currentDate = activeTodoItem.start_date
+        ? new Date(activeTodoItem.start_date)
+        : activeTodoItem.due_date
+          ? new Date(activeTodoItem.due_date)
           : null
 
       // 只有日期发生变化时才更新
@@ -407,13 +403,12 @@ export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, o
                     <li
                       key={todo.id}
                       onClick={(e) => onTodoClick?.(todo, e)}
-                      className={`flex items-stretch rounded-lg overflow-hidden transition-all cursor-pointer ${
-                        selectedTodoId === todo.id
-                          ? 'bg-[var(--color-bg)] ring-1 ring-[var(--color-accent)]/50'
-                          : todo.completed 
-                            ? 'bg-[var(--color-bg)]/50 hover:bg-[var(--color-bg)]/70' 
-                            : 'bg-[var(--color-bg)]/80 hover:bg-[var(--color-bg)]'
-                      }`}
+                      className={`flex items-stretch rounded-lg overflow-hidden transition-all cursor-pointer ${selectedTodoId === todo.id
+                        ? 'bg-[var(--color-bg)] ring-1 ring-[var(--color-accent)]/50'
+                        : todo.completed
+                          ? 'bg-[var(--color-bg)]/50 hover:bg-[var(--color-bg)]/70'
+                          : 'bg-[var(--color-bg)]/80 hover:bg-[var(--color-bg)]'
+                        }`}
                     >
                       {/* 左侧颜色条 */}
                       <div className={`w-1 shrink-0 ${todo.quadrant ? getQuadrantColor(todo.quadrant) : 'bg-transparent'}`} />
@@ -424,11 +419,10 @@ export function WeekView({ currentDate, todos, onCreateTodo, onToggleComplete, o
                             e.stopPropagation()
                             onToggleComplete(todo)
                           }}
-                          className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                            todo.completed 
-                              ? 'bg-emerald-500 border-emerald-500' 
-                              : 'border-[var(--color-border)] hover:border-emerald-500'
-                          }`}
+                          className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${todo.completed
+                            ? 'bg-emerald-500 border-emerald-500'
+                            : 'border-[var(--color-border)] hover:border-emerald-500'
+                            }`}
                         >
                           {todo.completed && (
                             <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">

@@ -76,6 +76,11 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -84,12 +89,36 @@ jobs:
       - name: Display downloaded files
         run: find artifacts -type f -name "*"
 
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          # Get current tag from ref (e.g. refs/tags/v1.0.0 -> v1.0.0)
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          
+          # Try to find the previous tag
+          # We use || true to prevent failure if no previous tag exists
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${CURRENT_TAG}^ 2>/dev/null || true)
+          
+          echo "Current tag: $CURRENT_TAG"
+          echo "Previous tag: $PREVIOUS_TAG"
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found. Logging all commits until $CURRENT_TAG"
+            git log --pretty=format:"* %s @%an" $CURRENT_TAG > release_notes.md
+          else
+            echo "Logging commits between $PREVIOUS_TAG and $CURRENT_TAG"
+            git log --pretty=format:"* %s @%an" $PREVIOUS_TAG..$CURRENT_TAG > release_notes.md
+          fi
+          
+          echo "Release Notes Content:"
+          cat release_notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             artifacts/**/*.dmg
           draft: true
-          generate_release_notes: true
+          body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

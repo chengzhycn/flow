@@ -5,6 +5,8 @@ import type { ThemeMode } from '@/theme/themeStore'
 import { useUser } from '@/auth/useUser'
 import { signOut } from '@/api/auth'
 import { fetchPomodoroSessions } from '@/api/pomodoro'
+import { getName, getVersion } from '@tauri-apps/api/app'
+import { useEffect, useState } from 'react'
 
 export function SettingsPage() {
   const navigate = useNavigate()
@@ -12,6 +14,20 @@ export function SettingsPage() {
   const setMode = useThemeStore((s) => s.setMode)
   const { user } = useUser()
   const userId = user?.id ?? ''
+
+  const [appInfo, setAppInfo] = useState({ name: '', version: '' })
+
+  useEffect(() => {
+    async function loadAppInfo() {
+      try {
+        const [name, version] = await Promise.all([getName(), getVersion()])
+        setAppInfo({ name, version })
+      } catch (error) {
+        console.error('Failed to load app info:', error)
+      }
+    }
+    loadAppInfo()
+  }, [])
 
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
@@ -78,8 +94,8 @@ export function SettingsPage() {
               type="button"
               onClick={() => setMode(opt.value)}
               className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${mode === opt.value
-                  ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text)] hover:border-[var(--color-text-muted)]'
+                ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                : 'border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text)] hover:border-[var(--color-text-muted)]'
                 }`}
             >
               {opt.label}
@@ -109,6 +125,17 @@ export function SettingsPage() {
           </span>
         </div>
       </section>
+
+      <section>
+        <h2 className="text-lg font-medium text-[var(--color-text)] mb-2">关于</h2>
+        <div className="bg-[var(--color-bg-elevated)] rounded-lg p-4 text-sm text-[var(--color-text-muted)]">
+          <p>
+            <span className="font-medium text-[var(--color-text)]">{appInfo.name}</span>
+            <span className="mx-2">v{appInfo.version}</span>
+          </p>
+        </div>
+      </section>
     </div>
   )
 }
+

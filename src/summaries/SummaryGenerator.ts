@@ -1,6 +1,6 @@
-import { fetchTodos, type Todo, type Quadrant } from '@/api/todos'
+import { fetchTodos, type Todo } from '@/api/todos'
 import { fetchPomodoroSessions } from '@/api/pomodoro'
-import { fetchProjects, fetchMilestones, fetchProjectTodos, fetchProjectTaskStats, type Project, type Milestone } from '@/api/projects'
+import { fetchProjects, fetchMilestones, fetchProjectTaskStats, type Project, type Milestone } from '@/api/projects'
 import {
   createSummary,
   updateSummary,

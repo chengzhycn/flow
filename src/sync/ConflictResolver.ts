@@ -55,6 +55,7 @@ export function mergeTodoFromRemote(
         title: string
         description: string | null
         completed: boolean
+        completed_at: string | null
         due_date: string | null
         start_date: string | null
         quadrant: string | null

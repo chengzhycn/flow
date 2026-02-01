@@ -8,6 +8,7 @@ export type LocalTodo = {
     title: string
     description: string | null
     completed: boolean
+    completed_at: string | null
     due_date: string | null
     start_date: string | null
     quadrant: Quadrant
@@ -63,12 +64,14 @@ export async function createLocalTodo(
     const now = nowISO()
     const id = generateId()
 
+    const isCompleted = todo.completed ?? false
     const newTodo: LocalTodo = {
         id,
         user_id: userId,
         title: todo.title,
         description: todo.description ?? null,
-        completed: todo.completed ?? false,
+        completed: isCompleted,
+        completed_at: isCompleted ? now : null,
         due_date: todo.due_date ?? null,
         start_date: todo.start_date ?? null,
         quadrant: (todo.quadrant ?? null) as Quadrant,
@@ -87,16 +90,17 @@ export async function createLocalTodo(
 
     await db.execute(
         `INSERT INTO todos (
-      id, user_id, title, description, completed, due_date, start_date,
+      id, user_id, title, description, completed, completed_at, due_date, start_date,
       quadrant, inbox, sort_order, parent_id, project_id, milestone_id, deleted_at, created_at, updated_at,
       sync_status, local_updated_at, remote_updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
         [
             newTodo.id,
             newTodo.user_id,
             newTodo.title,
             newTodo.description,
             newTodo.completed ? 1 : 0,
+            newTodo.completed_at,
             newTodo.due_date,
             newTodo.start_date,
             newTodo.quadrant,
@@ -144,6 +148,9 @@ export async function updateLocalTodo(
     if (patch.completed !== undefined) {
         updates.push(`completed = $${paramIndex++}`)
         values.push(patch.completed ? 1 : 0)
+        // 自动设置 completed_at：完成时设置当前时间，取消完成时清空
+        updates.push(`completed_at = $${paramIndex++}`)
+        values.push(patch.completed ? now : null)
     }
     if (patch.due_date !== undefined) {
         updates.push(`due_date = $${paramIndex++}`)
@@ -283,16 +290,17 @@ export async function upsertLocalTodos(todos: LocalTodo[]): Promise<void> {
     for (const todo of todos) {
         await db.execute(
             `INSERT OR REPLACE INTO todos (
-        id, user_id, title, description, completed, due_date, start_date,
+        id, user_id, title, description, completed, completed_at, due_date, start_date,
         quadrant, inbox, sort_order, parent_id, project_id, milestone_id, deleted_at, created_at, updated_at,
         sync_status, local_updated_at, remote_updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
             [
                 todo.id,
                 todo.user_id,
                 todo.title,
                 todo.description,
                 todo.completed ? 1 : 0,
+                todo.completed_at,
                 todo.due_date,
                 todo.start_date,
                 todo.quadrant,

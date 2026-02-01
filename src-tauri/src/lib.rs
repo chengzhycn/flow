@@ -40,6 +40,12 @@ pub fn run() {
                             sql: include_str!("../migrations/003_work_summaries.sql"),
                             kind: tauri_plugin_sql::MigrationKind::Up,
                         },
+                        tauri_plugin_sql::Migration {
+                            version: 4,
+                            description: "Add completed_at field to todos",
+                            sql: include_str!("../migrations/004_add_completed_at.sql"),
+                            kind: tauri_plugin_sql::MigrationKind::Up,
+                        },
                     ],
                 )
                 .build(),

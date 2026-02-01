@@ -19,6 +19,7 @@ export type Todo = {
   title: string
   description: string | null
   completed: boolean
+  completed_at: string | null
   due_date: string | null
   start_date: string | null
   quadrant: Quadrant
@@ -93,13 +94,16 @@ export async function createTodo(userId: string, todo: TodoInsert): Promise<Todo
   }
 
   // 回退到 Supabase
+  const isCompleted = todo.completed ?? false
+  const now = new Date().toISOString()
   const { data, error } = await supabase
     .from('todos')
     .insert({
       user_id: userId,
       title: todo.title,
       description: todo.description ?? null,
-      completed: todo.completed ?? false,
+      completed: isCompleted,
+      completed_at: isCompleted ? now : null,
       due_date: todo.due_date ?? null,
       start_date: todo.start_date ?? null,
       quadrant: todo.quadrant ?? null,
@@ -127,9 +131,14 @@ export async function updateTodo(id: string, patch: TodoUpdate): Promise<Todo> {
   }
 
   // 回退到 Supabase
+  const updateData: Record<string, unknown> = { ...patch, updated_at: new Date().toISOString() }
+  // 自动设置 completed_at：完成时设置当前时间，取消完成时清空
+  if (patch.completed !== undefined) {
+    updateData.completed_at = patch.completed ? new Date().toISOString() : null
+  }
   const { data, error } = await supabase
     .from('todos')
-    .update({ ...patch, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single()
@@ -200,6 +209,7 @@ function localToTodo(local: LocalTodo): Todo {
     title: local.title,
     description: local.description,
     completed: local.completed,
+    completed_at: local.completed_at,
     due_date: local.due_date,
     start_date: local.start_date,
     quadrant: local.quadrant,

@@ -268,6 +268,7 @@ async function pushTodoToRemote(todo: LocalTodo): Promise<void> {
         title: todo.title,
         description: todo.description,
         completed: todo.completed,
+        completed_at: todo.completed_at,
         due_date: todo.due_date,
         start_date: todo.start_date,
         quadrant: todo.quadrant,
@@ -368,9 +369,10 @@ async function pushSummaryToRemote(summary: LocalWorkSummary): Promise<void> {
         created_at: summary.created_at,
     }
 
+    // 使用复合唯一键来处理冲突，避免相同时间段的重复记录
     const { error } = await supabase
         .from('work_summaries')
-        .upsert(remoteData, { onConflict: 'id' })
+        .upsert(remoteData, { onConflict: 'user_id,type,period_start' })
 
     if (error) throw error
 }

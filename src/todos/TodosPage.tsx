@@ -277,17 +277,35 @@ export function TodosPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteTodo,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', userId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos', userId] })
+      if (selectedProjectId) {
+        queryClient.invalidateQueries({ queryKey: ['projectTodos', selectedProjectId] })
+        queryClient.invalidateQueries({ queryKey: ['projectTaskStats', selectedProjectId] })
+      }
+    },
   })
 
   const restoreMutation = useMutation({
     mutationFn: restoreTodo,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', userId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos', userId] })
+      if (selectedProjectId) {
+        queryClient.invalidateQueries({ queryKey: ['projectTodos', selectedProjectId] })
+        queryClient.invalidateQueries({ queryKey: ['projectTaskStats', selectedProjectId] })
+      }
+    },
   })
 
   const permanentlyDeleteMutation = useMutation({
     mutationFn: permanentlyDeleteTodo,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['todos', userId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos', userId] })
+      if (selectedProjectId) {
+        queryClient.invalidateQueries({ queryKey: ['projectTodos', selectedProjectId] })
+        queryClient.invalidateQueries({ queryKey: ['projectTaskStats', selectedProjectId] })
+      }
+    },
   })
 
   // 项目相关 Mutations

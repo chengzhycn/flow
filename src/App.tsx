@@ -10,6 +10,7 @@ import { PomodoroPage } from '@/pomodoro/PomodoroPage'
 import { CalendarPage } from '@/calendar/CalendarPage'
 import { SettingsPage } from '@/settings/SettingsPage'
 import { QuickAddPage } from '@/quick-add/QuickAddPage'
+import { OverviewPage } from '@/summaries/OverviewPage'
 
 const queryClient = new QueryClient()
 
@@ -63,6 +64,16 @@ function AppRoutes() {
           <AuthGuard>
             <Layout>
               <SettingsPage />
+            </Layout>
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/overview"
+        element={
+          <AuthGuard>
+            <Layout>
+              <OverviewPage />
             </Layout>
           </AuthGuard>
         }

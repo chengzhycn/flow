@@ -19,7 +19,7 @@ import {
     incrementRetry,
     type SyncQueueItem,
 } from './SyncQueue'
-import { mergeTodoFromRemote, mergePomodoroFromRemote, mergeProjectFromRemote, mergeMilestoneFromRemote } from './ConflictResolver'
+import { mergeTodoFromRemote, mergePomodoroFromRemote, mergeProjectFromRemote, mergeMilestoneFromRemote, mergeSummaryFromRemote } from './ConflictResolver'
 import {
     getPendingProjects,
     markProjectSynced,
@@ -32,6 +32,13 @@ import {
     type LocalProject,
     type LocalMilestone,
 } from '../db/localProjects'
+import {
+    getPendingSummaries,
+    markSummarySynced,
+    upsertLocalSummaries,
+    getLocalSummaryById,
+    type LocalWorkSummary,
+} from '../db/localSummaries'
 
 // 同步状态
 type SyncStatus = 'idle' | 'syncing' | 'error'
@@ -225,6 +232,19 @@ async function pushToRemote(_userId: string): Promise<void> {
         }
     }
 
+    // 5. 推送 Work Summaries
+    const pendingSummaries = await getPendingSummaries()
+    console.log(`[SyncEngine] Pushing ${pendingSummaries.length} work summaries...`)
+
+    for (const summary of pendingSummaries) {
+        try {
+            await pushSummaryToRemote(summary)
+            await markSummarySynced(summary.id, new Date().toISOString())
+        } catch (error) {
+            console.error(`[SyncEngine] Failed to push summary ${summary.id}:`, error)
+        }
+    }
+
     // 处理同步队列（用于删除操作等）
     const queue = await getSyncQueue()
     for (const item of queue) {
@@ -329,6 +349,27 @@ async function pushMilestoneToRemote(milestone: LocalMilestone): Promise<void> {
 
     const { error } = await supabase
         .from('milestones')
+        .upsert(remoteData, { onConflict: 'id' })
+
+    if (error) throw error
+}
+
+/**
+ * 推送单个 Work Summary 到远端
+ */
+async function pushSummaryToRemote(summary: LocalWorkSummary): Promise<void> {
+    const remoteData = {
+        id: summary.id,
+        user_id: summary.user_id,
+        type: summary.type,
+        period_start: summary.period_start,
+        period_end: summary.period_end,
+        content: summary.content,
+        created_at: summary.created_at,
+    }
+
+    const { error } = await supabase
+        .from('work_summaries')
         .upsert(remoteData, { onConflict: 'id' })
 
     if (error) throw error
@@ -481,6 +522,32 @@ async function pullFromRemote(userId: string, _isFullSync: boolean): Promise<voi
         await upsertLocalPomodoroSessions(mergedSessions)
     }
 
+    // 5. 拉取 Work Summaries
+    let summariesQuery = supabase
+        .from('work_summaries')
+        .select('*')
+        .eq('user_id', userId)
+
+    if (lastPull) {
+        summariesQuery = summariesQuery.gt('created_at', lastPull)
+    }
+
+    const { data: remoteSummaries, error: summariesError } = await summariesQuery
+    if (summariesError) throw summariesError
+
+    console.log(`[SyncEngine] Pulled ${remoteSummaries?.length ?? 0} work summaries from remote`)
+
+    // 合并 Work Summaries
+    if (remoteSummaries && remoteSummaries.length > 0) {
+        const mergedSummaries: LocalWorkSummary[] = []
+        for (const remote of remoteSummaries) {
+            const local = await getLocalSummaryById(remote.id)
+            const merged = mergeSummaryFromRemote(local, remote)
+            mergedSummaries.push(merged)
+        }
+        await upsertLocalSummaries(mergedSummaries)
+    }
+
     // 更新最后拉取时间
     const now = new Date().toISOString()
     await db.execute(
@@ -528,6 +595,7 @@ export async function forcePushSync(userId: string): Promise<void> {
         await db.execute(`UPDATE milestones SET sync_status = 'pending' WHERE id IN (SELECT id FROM milestones WHERE project_id IN (SELECT id FROM projects WHERE user_id = $1))`, [userId])
         await db.execute(`UPDATE todos SET sync_status = 'pending' WHERE user_id = $1`, [userId])
         await db.execute(`UPDATE pomodoro_sessions SET sync_status = 'pending' WHERE user_id = $1`, [userId])
+        await db.execute(`UPDATE work_summaries SET sync_status = 'pending' WHERE user_id = $1`, [userId])
 
         // 推送到远端
         await pushToRemote(userId)

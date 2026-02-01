@@ -7,6 +7,9 @@ import { signOut } from '@/api/auth'
 import { fetchPomodoroSessions } from '@/api/pomodoro'
 import { getName, getVersion } from '@tauri-apps/api/app'
 import { useEffect, useState } from 'react'
+import { LLMSettingsSection } from './LLMSettingsSection'
+import { PromptSettingsSection } from './PromptSettingsSection'
+import { ScheduleSettingsSection } from './ScheduleSettingsSection'
 
 export function SettingsPage() {
   const navigate = useNavigate()
@@ -110,6 +113,15 @@ export function SettingsPage() {
           默认设置：25分钟工作，5分钟短休息，15分钟长休息。自定义时长功能将在后续更新中添加。
         </p>
       </section>
+
+      {/* AI 总结设置 */}
+      <LLMSettingsSection />
+
+      {/* Prompt 模板设置 */}
+      <PromptSettingsSection />
+
+      {/* 定时总结设置 */}
+      <ScheduleSettingsSection />
 
       <section>
         <h2 className="text-lg font-medium text-[var(--color-text)] mb-2">历史记录</h2>

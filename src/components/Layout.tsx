@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { SummaryScheduler } from '@/summaries/SummaryScheduler'
 
 // Solid icon components
 function TodosIcon({ className }: { className?: string }) {
@@ -49,12 +50,21 @@ function ProjectsIcon({ className }: { className?: string }) {
   )
 }
 
+function OverviewIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+    </svg>
+  )
+}
+
 const iconComponents = {
   todos: TodosIcon,
   quadrants: QuadrantsIcon,
   pomodoro: PomodoroIcon,
   calendar: CalendarIcon,
   projects: ProjectsIcon,
+  overview: OverviewIcon,
   settings: SettingsIcon,
 }
 
@@ -66,12 +76,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { path: '/quadrants', icon: 'quadrants' as const, label: '四象限' },
     { path: '/calendar', icon: 'calendar' as const, label: '日历' },
     { path: '/pomodoro', icon: 'pomodoro' as const, label: '番茄钟' },
+    { path: '/overview', icon: 'overview' as const, label: '概览' },
     { path: '/settings', icon: 'settings' as const, label: '设置' },
   ]
 
   return (
-    <div className="h-screen flex bg-[var(--color-bg)] overflow-hidden">
-      {/* Left sidebar navigation */}
+    <>
+      {/* 后台调度器 */}
+      <SummaryScheduler />
+      
+      <div className="h-screen flex bg-[var(--color-bg)] overflow-hidden">
+        {/* Left sidebar navigation */}
       <aside className="w-16 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-elevated)] flex flex-col items-center py-4">
         <nav className="flex flex-col gap-2 w-full">
           {navItems.map((item) => {
@@ -108,5 +123,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
     </div>
+    </>
   )
 }

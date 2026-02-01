@@ -1,5 +1,6 @@
 import type { LocalTodo } from '../db/localTodos'
 import type { LocalPomodoroSession } from '../db/localPomodoro'
+import type { LocalWorkSummary } from '../db/localSummaries'
 
 /**
  * 冲突检测：检查本地和远端是否存在冲突
@@ -280,5 +281,46 @@ export function mergeMilestoneFromRemote(
         sync_status: 'synced',
         local_updated_at: remote.updated_at,
         remote_updated_at: remote.updated_at,
+    }
+}
+
+/**
+ * 合并 WorkSummary 数据
+ */
+export function mergeSummaryFromRemote(
+    local: LocalWorkSummary | null,
+    remote: {
+        id: string
+        user_id: string
+        type: string
+        period_start: string
+        period_end: string
+        content: string
+        created_at: string
+    }
+): LocalWorkSummary {
+    if (!local) {
+        return {
+            ...remote,
+            type: remote.type as LocalWorkSummary['type'],
+            sync_status: 'synced',
+            local_updated_at: remote.created_at,
+            remote_updated_at: remote.created_at,
+        }
+    }
+
+    // 工作总结通常不会修改，使用已存在的本地数据
+    // 如果本地是 pending，保留本地数据
+    if (local.sync_status === 'pending') {
+        return local
+    }
+
+    // 否则使用远端数据
+    return {
+        ...remote,
+        type: remote.type as LocalWorkSummary['type'],
+        sync_status: 'synced',
+        local_updated_at: remote.created_at,
+        remote_updated_at: remote.created_at,
     }
 }

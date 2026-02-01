@@ -20,13 +20,27 @@ pub fn run() {
             tauri_plugin_sql::Builder::default()
                 .add_migrations(
                     "sqlite:flow.db",
-                    vec![tauri_plugin_sql::Migration {
-                        version: 1,
-                        description:
-                            "Initial schema with todos, pomodoro_sessions, and sync tables",
-                        sql: include_str!("../migrations/001_init.sql"),
-                        kind: tauri_plugin_sql::MigrationKind::Up,
-                    }],
+                    vec![
+                        tauri_plugin_sql::Migration {
+                            version: 1,
+                            description:
+                                "Initial schema with todos, pomodoro_sessions, and sync tables",
+                            sql: include_str!("../migrations/001_init.sql"),
+                            kind: tauri_plugin_sql::MigrationKind::Up,
+                        },
+                        tauri_plugin_sql::Migration {
+                            version: 2,
+                            description: "Add projects and milestones tables",
+                            sql: include_str!("../migrations/002_projects.sql"),
+                            kind: tauri_plugin_sql::MigrationKind::Up,
+                        },
+                        tauri_plugin_sql::Migration {
+                            version: 3,
+                            description: "Add work_summaries table",
+                            sql: include_str!("../migrations/003_work_summaries.sql"),
+                            kind: tauri_plugin_sql::MigrationKind::Up,
+                        },
+                    ],
                 )
                 .build(),
         )

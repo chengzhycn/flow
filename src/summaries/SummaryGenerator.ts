@@ -1,6 +1,6 @@
-import { fetchTodos } from '@/api/todos'
+import { fetchTodos, type Todo, type Quadrant } from '@/api/todos'
 import { fetchPomodoroSessions } from '@/api/pomodoro'
-import { fetchProjects, fetchProjectTaskStats } from '@/api/projects'
+import { fetchProjects, fetchMilestones, fetchProjectTodos, fetchProjectTaskStats, type Project, type Milestone } from '@/api/projects'
 import {
   createSummary,
   updateSummary,
@@ -10,6 +10,9 @@ import {
   updateLastSummaryTime,
   type SummaryData,
   type SummaryType,
+  type CategorizedTodo,
+  type MilestoneProgress,
+  type QuadrantType,
 } from '@/api/summaries'
 
 /**
@@ -63,6 +66,51 @@ export function formatDateRange(start: string, end: string): { startStr: string;
 }
 
 /**
+ * 将 Todo 转换为 CategorizedTodo
+ */
+function toCategorizedTodo(
+  todo: Todo,
+  projectMap: Map<string, Project>,
+  milestoneMap: Map<string, Milestone>
+): CategorizedTodo {
+  return {
+    title: todo.title,
+    quadrant: todo.quadrant as QuadrantType | null,
+    dueDate: todo.due_date,
+    projectName: todo.project_id ? projectMap.get(todo.project_id)?.name ?? null : null,
+    milestoneName: todo.milestone_id ? milestoneMap.get(todo.milestone_id)?.name ?? null : null,
+  }
+}
+
+/**
+ * 判断日期是否在周期内（包含边界）
+ */
+function isDateInPeriod(dateStr: string | null, periodStart: Date, periodEnd: Date): boolean {
+  if (!dateStr) return false
+  const date = new Date(dateStr)
+  return date >= periodStart && date <= periodEnd
+}
+
+/**
+ * 判断任务是否超期
+ */
+function isOverdue(dueDate: string | null, referenceDate: Date = new Date()): boolean {
+  if (!dueDate) return false
+  return new Date(dueDate) < referenceDate
+}
+
+/**
+ * 判断任务是否即将到期（默认7天内）
+ */
+function isUpcomingDue(dueDate: string | null, days: number = 7, referenceDate: Date = new Date()): boolean {
+  if (!dueDate) return false
+  const due = new Date(dueDate)
+  const futureDate = new Date(referenceDate)
+  futureDate.setDate(futureDate.getDate() + days)
+  return due > referenceDate && due <= futureDate
+}
+
+/**
  * 收集指定时间段的工作数据
  */
 export async function collectSummaryData(
@@ -70,34 +118,88 @@ export async function collectSummaryData(
   periodStart: string,
   periodEnd: string
 ): Promise<SummaryData> {
-  // 获取所有任务
-  const todos = await fetchTodos(userId)
-
-  // 筛选时间段内的任务
   const periodStartDate = new Date(periodStart)
   const periodEndDate = new Date(periodEnd)
+  const now = new Date()
 
+  // 获取所有任务
+  const todos = await fetchTodos(userId)
+  
+  // 获取所有项目和里程碑
+  const projects = await fetchProjects(userId)
+  const projectMap = new Map<string, Project>(projects.map(p => [p.id, p]))
+  
+  // 收集所有里程碑
+  const milestoneMap = new Map<string, Milestone>()
+  const allMilestones: Array<Milestone & { project: Project }> = []
+  
+  for (const project of projects) {
+    const milestones = await fetchMilestones(project.id)
+    for (const m of milestones) {
+      milestoneMap.set(m.id, m)
+      allMilestones.push({ ...m, project })
+    }
+  }
+
+  // 分类任务
   const newTodos: string[] = []
-  const completedTodos: string[] = []
-  const inProgressTodos: string[] = []
+  const completedTodos: CategorizedTodo[] = []
+  const inProgressTodos: CategorizedTodo[] = []
+  const overdueTodos: CategorizedTodo[] = []
+  const upcomingDueTodos: CategorizedTodo[] = []
+
+  // 四象限统计（未完成任务）
+  const quadrantSummary = {
+    important_urgent: [] as CategorizedTodo[],
+    important_not_urgent: [] as CategorizedTodo[],
+    not_important_urgent: [] as CategorizedTodo[],
+    not_important_not_urgent: [] as CategorizedTodo[],
+    unclassified: [] as CategorizedTodo[],
+  }
 
   for (const todo of todos) {
     const createdAt = new Date(todo.created_at)
-    const updatedAt = new Date(todo.updated_at)
+    const categorizedTodo = toCategorizedTodo(todo, projectMap, milestoneMap)
 
     // 在时间段内创建的任务
     if (createdAt >= periodStartDate && createdAt <= periodEndDate) {
       newTodos.push(`- ${todo.title}`)
     }
 
-    // 在时间段内完成的任务
-    if (todo.completed && updatedAt >= periodStartDate && updatedAt <= periodEndDate) {
-      completedTodos.push(`- ${todo.title}`)
+    // 已完成任务：completed_at 在总结周期内
+    if (todo.completed && todo.completed_at) {
+      const completedAt = new Date(todo.completed_at)
+      if (completedAt >= periodStartDate && completedAt <= periodEndDate) {
+        completedTodos.push(categorizedTodo)
+      }
     }
 
-    // 进行中的任务（未完成且未删除）
+    // 未完成任务处理
     if (!todo.completed && !todo.deleted_at) {
-      inProgressTodos.push(`- ${todo.title}`)
+      // 判断任务是否与总结周期相关（开始时间或截止时间在周期内）
+      const startInPeriod = isDateInPeriod(todo.start_date, periodStartDate, periodEndDate)
+      const dueInPeriod = isDateInPeriod(todo.due_date, periodStartDate, periodEndDate)
+      
+      // 超期未完成任务
+      if (isOverdue(todo.due_date, periodEndDate)) {
+        overdueTodos.push(categorizedTodo)
+      }
+      // 即将到期任务（未来7天内到期）
+      else if (isUpcomingDue(todo.due_date, 7, now)) {
+        upcomingDueTodos.push(categorizedTodo)
+      }
+      
+      // 进行中任务：总结周期在任务的开始时间和截止时间内，或任务在周期内活跃
+      if (startInPeriod || dueInPeriod || !todo.due_date) {
+        inProgressTodos.push(categorizedTodo)
+      }
+      
+      // 四象限分类（所有未完成任务）
+      if (todo.quadrant) {
+        quadrantSummary[todo.quadrant as QuadrantType].push(categorizedTodo)
+      } else {
+        quadrantSummary.unclassified.push(categorizedTodo)
+      }
     }
   }
 
@@ -108,14 +210,47 @@ export async function collectSummaryData(
   const totalMinutes = completedWorkSessions.reduce((sum, s) => sum + s.duration_minutes, 0)
 
   // 获取项目统计
-  const projects = await fetchProjects(userId)
   const projectStatsLines: string[] = []
-
   for (const project of projects) {
     const stats = await fetchProjectTaskStats(project.id)
     if (stats.total > 0) {
       const percentage = Math.round((stats.completed / stats.total) * 100)
       projectStatsLines.push(`- ${project.name}: ${stats.completed}/${stats.total} (${percentage}%)`)
+    }
+  }
+
+  // 获取里程碑进度
+  const milestoneProgress: MilestoneProgress[] = []
+  const overdueMilestones: MilestoneProgress[] = []
+
+  for (const milestone of allMilestones) {
+    // 只关注当前周期内有截止日期的里程碑，或者超期的里程碑
+    const dueInPeriod = isDateInPeriod(milestone.due_date, periodStartDate, periodEndDate)
+    const milestoneOverdue = !milestone.completed && isOverdue(milestone.due_date, periodEndDate)
+
+    if (dueInPeriod || milestoneOverdue) {
+      // 获取该里程碑下的任务统计
+      const milestoneTodos = todos.filter(t => t.milestone_id === milestone.id && !t.deleted_at)
+      const totalTasks = milestoneTodos.length
+      const completedTasks = milestoneTodos.filter(t => t.completed).length
+
+      const progressData: MilestoneProgress = {
+        projectName: milestone.project.name,
+        milestoneName: milestone.name,
+        dueDate: milestone.due_date,
+        completed: milestone.completed,
+        totalTasks,
+        completedTasks,
+        isOverdue: milestoneOverdue,
+      }
+
+      if (dueInPeriod) {
+        milestoneProgress.push(progressData)
+      }
+      
+      if (milestoneOverdue) {
+        overdueMilestones.push(progressData)
+      }
     }
   }
 
@@ -127,9 +262,14 @@ export async function collectSummaryData(
     newTodos,
     completedTodos,
     inProgressTodos,
+    overdueTodos,
+    upcomingDueTodos,
     pomodoroCount,
     totalMinutes,
     projectStats: projectStatsLines.join('\n'),
+    milestoneProgress,
+    overdueMilestones,
+    quadrantSummary,
   }
 }
 

@@ -294,15 +294,120 @@ export async function updateLastSummaryTime(type: SummaryType, time: string): Pr
 
 // ==================== LLM API 调用 ====================
 
+// 任务四象限类型
+export type QuadrantType = 'important_urgent' | 'important_not_urgent' | 'not_important_urgent' | 'not_important_not_urgent'
+
+// 里程碑进度数据
+export type MilestoneProgress = {
+  projectName: string
+  milestoneName: string
+  dueDate: string | null
+  completed: boolean
+  totalTasks: number
+  completedTasks: number
+  isOverdue: boolean
+}
+
+// 分类任务数据
+export type CategorizedTodo = {
+  title: string
+  quadrant: QuadrantType | null
+  dueDate: string | null
+  projectName: string | null
+  milestoneName: string | null
+}
+
 export type SummaryData = {
   periodStart: string
   periodEnd: string
+  // 任务统计
   newTodos: string[]
-  completedTodos: string[]
-  inProgressTodos: string[]
+  completedTodos: CategorizedTodo[]
+  inProgressTodos: CategorizedTodo[]
+  overdueTodos: CategorizedTodo[]        // 超期未完成任务
+  upcomingDueTodos: CategorizedTodo[]    // 即将到期任务（下一阶段重点）
+  // 番茄钟数据
   pomodoroCount: number
   totalMinutes: number
+  // 项目和里程碑
   projectStats: string
+  milestoneProgress: MilestoneProgress[] // 里程碑进度
+  overdueMilestones: MilestoneProgress[] // 超期未完成里程碑
+  // 四象限分析
+  quadrantSummary: {
+    important_urgent: CategorizedTodo[]
+    important_not_urgent: CategorizedTodo[]
+    not_important_urgent: CategorizedTodo[]
+    not_important_not_urgent: CategorizedTodo[]
+    unclassified: CategorizedTodo[]
+  }
+}
+
+/**
+ * 格式化任务为字符串
+ */
+function formatTodo(todo: CategorizedTodo): string {
+  const parts = [`- ${todo.title}`]
+  if (todo.projectName) {
+    parts.push(`[项目: ${todo.projectName}]`)
+  }
+  if (todo.milestoneName) {
+    parts.push(`[里程碑: ${todo.milestoneName}]`)
+  }
+  if (todo.dueDate) {
+    parts.push(`[截止: ${new Date(todo.dueDate).toLocaleDateString('zh-CN')}]`)
+  }
+  if (todo.quadrant) {
+    const quadrantNames: Record<QuadrantType, string> = {
+      important_urgent: '重要且紧急',
+      important_not_urgent: '重要不紧急',
+      not_important_urgent: '不重要但紧急',
+      not_important_not_urgent: '不重要不紧急',
+    }
+    parts.push(`[${quadrantNames[todo.quadrant]}]`)
+  }
+  return parts.join(' ')
+}
+
+/**
+ * 格式化里程碑进度为字符串
+ */
+function formatMilestone(m: MilestoneProgress): string {
+  const percentage = m.totalTasks > 0 ? Math.round((m.completedTasks / m.totalTasks) * 100) : 0
+  const status = m.completed ? '✓ 已完成' : m.isOverdue ? '⚠ 超期' : '进行中'
+  const dueStr = m.dueDate ? `截止: ${new Date(m.dueDate).toLocaleDateString('zh-CN')}` : '无截止日期'
+  return `- ${m.projectName} / ${m.milestoneName}: ${m.completedTasks}/${m.totalTasks} (${percentage}%) [${status}] [${dueStr}]`
+}
+
+/**
+ * 格式化四象限数据为字符串
+ */
+function formatQuadrantSummary(data: SummaryData): string {
+  const sections: string[] = []
+  
+  const { quadrantSummary } = data
+  
+  if (quadrantSummary.important_urgent.length > 0) {
+    sections.push(`### 重要且紧急（立即处理）\n${quadrantSummary.important_urgent.map(formatTodo).join('\n')}`)
+  }
+  
+  if (quadrantSummary.important_not_urgent.length > 0) {
+    sections.push(`### 重要不紧急（计划执行）\n${quadrantSummary.important_not_urgent.map(formatTodo).join('\n')}`)
+  }
+  
+  if (quadrantSummary.not_important_urgent.length > 0) {
+    sections.push(`### 不重要但紧急（考虑委派）\n${quadrantSummary.not_important_urgent.map(formatTodo).join('\n')}`)
+  }
+  
+  if (quadrantSummary.not_important_not_urgent.length > 0) {
+    sections.push(`### 不重要不紧急（适时处理）\n${quadrantSummary.not_important_not_urgent.map(formatTodo).join('\n')}`)
+  }
+  
+  if (quadrantSummary.unclassified.length > 0) {
+    sections.push(`### 未分类\n${quadrantSummary.unclassified.map(formatTodo).join('\n')}`)
+  }
+  
+  return sections.join('\n\n') || '无待处理任务'
 }
 
 /**
@@ -319,15 +424,46 @@ export async function generateSummaryWithLLM(
   }
 
   const template = type === 'daily' ? settings.dailyPromptTemplate : settings.weeklyPromptTemplate
+  
+  // 格式化任务列表
+  const completedTodosStr = data.completedTodos.length > 0 
+    ? data.completedTodos.map(formatTodo).join('\n') 
+    : '无'
+  const inProgressTodosStr = data.inProgressTodos.length > 0 
+    ? data.inProgressTodos.map(formatTodo).join('\n') 
+    : '无'
+  const overdueTodosStr = data.overdueTodos.length > 0 
+    ? data.overdueTodos.map(formatTodo).join('\n') 
+    : '无'
+  const upcomingDueTodosStr = data.upcomingDueTodos.length > 0 
+    ? data.upcomingDueTodos.map(formatTodo).join('\n') 
+    : '无'
+  
+  // 格式化里程碑数据
+  const milestoneProgressStr = data.milestoneProgress.length > 0 
+    ? data.milestoneProgress.map(formatMilestone).join('\n') 
+    : '无'
+  const overdueMilestonesStr = data.overdueMilestones.length > 0 
+    ? data.overdueMilestones.map(formatMilestone).join('\n') 
+    : '无'
+  
+  // 格式化四象限数据
+  const quadrantSummaryStr = formatQuadrantSummary(data)
+  
   const prompt = template
     .replace('{period_start}', data.periodStart)
     .replace('{period_end}', data.periodEnd)
     .replace('{new_todos}', data.newTodos.join('\n') || '无')
-    .replace('{completed_todos}', data.completedTodos.join('\n') || '无')
-    .replace('{in_progress_todos}', data.inProgressTodos.join('\n') || '无')
+    .replace('{completed_todos}', completedTodosStr)
+    .replace('{in_progress_todos}', inProgressTodosStr)
+    .replace('{overdue_todos}', overdueTodosStr)
+    .replace('{upcoming_due_todos}', upcomingDueTodosStr)
     .replace('{pomodoro_count}', String(data.pomodoroCount))
     .replace('{total_minutes}', String(data.totalMinutes))
     .replace('{project_stats}', data.projectStats || '无项目数据')
+    .replace('{milestone_progress}', milestoneProgressStr)
+    .replace('{overdue_milestones}', overdueMilestonesStr)
+    .replace('{quadrant_summary}', quadrantSummaryStr)
 
   const response = await fetch(`${settings.baseUrl}/chat/completions`, {
     method: 'POST',
